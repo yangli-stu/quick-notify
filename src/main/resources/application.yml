@@ -1,0 +1,93 @@
+server:
+  port: 2025
+  tomcat:
+    max-connections: 2048
+    accept-count: 256
+    accesslog:
+      enabled: false
+      buffered: false
+      directory: "/tmp"
+      pattern: '%{yyyy-MM-dd HH:mm:ss}t %h <%{userId}r> [%I] "%r" %s %{ms}Tms'
+      prefix: "http"
+      suffix: ".log"
+      file-date-format: "-yyyy-MM-dd"
+      rotate: true
+      max-days: 30
+  compression:
+    enabled: true
+  shutdown: graceful
+  forward-headers-strategy: framework
+
+springdoc:
+  api-docs:
+    enabled: false
+    path: /api-doc
+  swagger-ui:
+    enabled: false
+    path: /swagger-ui.html
+    operationsSorter: alpha
+    tagsSorter: alpha
+
+###
+spring:
+  application:
+    name: quick-io.stu.notify
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 30MB
+  threads:
+    virtual:
+      enabled: false
+
+  jpa:
+    show-sql: false
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.format_sql: true
+      hibernate.session.events.log.LOG_QUERIES_SLOWER_THAN_MS: 500
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/quick-notify?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf-8&useSSL=false
+    username: root
+    password: 123456
+
+  data:
+    web:
+      pageable:
+        max-page-size: 50
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 1d
+
+
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+  messages:
+    basename: i18n/validations,i18n/messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    serialization:
+      fail-on-empty-beans: false
+
+cosid:
+  namespace: ${spring.application.name}
+  machine:
+    enabled: true # 可选，当需要使用雪花算法时，需要设置为 true
+    stable: false
+    distributor:
+      type: redis
+  snowflake:
+    enabled: true # 可选，当需要使用雪花算法时，需要设置为 true
+
+
+
+

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>STOMP WebSocket 消息推送 Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+<div class="max-w-4xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4 text-center text-blue-700">STOMP WebSocket 消息推送 Demo</h1>
+
+    <!-- 连接设置 -->
+    <div class="bg-white p-4 rounded shadow mb-4 space-y-4">
+        <div class="flex items-center space-x-2">
+            <label class="text-sm text-gray-600">Token:</label>
+            <input id="tokenInput" type="text" value="test1" class="flex-1 px-2 py-1 border border-gray-300 rounded">
+            <label class="text-sm text-gray-600">服务器地址:</label>
+            <input id="serverInput" type="text" value="http://localhost:2025" class="flex-1 px-2 py-1 border border-gray-300 rounded">
+            <button id="connectButton" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">连接</button>
+        </div>
+        <div id="connectionStatus" class="text-sm text-gray-600 flex items-center">
+            <i class="fa fa-circle-o text-yellow-500 mr-1"></i> 未连接
+        </div>
+    </div>
+
+    <!-- 消息区域 -->
+    <div class="bg-white p-4 rounded shadow h-[300px] overflow-y-auto mb-4" id="messageContainer">
+        <p class="text-gray-400 text-center">尚未连接...</p>
+    </div>
+
+    <!-- 发送消息 -->
+    <div class="flex items-center space-x-2 bg-white p-4 rounded shadow">
+        <input id="messageInput" type="text" placeholder="输入消息..." class="flex-1 px-4 py-2 border border-gray-300 rounded">
+        <button id="sendButton" disabled class="bg-gray-300 text-gray-600 px-4 py-2 rounded cursor-not-allowed">发送</button>
+    </div>
+
+    <div class="mt-6 bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">API 说明</h2>
+        <p class="text-gray-600 mb-4">服务器提供 REST API 用于主动推送消息：</p>
+        <div class="bg-gray-50 p-4 rounded-lg text-sm text-gray-600 space-y-2">
+            <p>示例(所有用户，json)：curl -X POST -d "Hello World." http://localhost:2025/vh-stomp-wsend/push_all_obj</p>
+            <p>示例(指定用户，json)：curl -X POST -d "Hello World." http://localhost:2025/vh-stomp-wsend/push_all_obj/test1</p>
+            <p>ifconfig | grep "inet " | grep -v 127.0.0.1</p>
+        </div>
+    </div>
+
+    <div class="mt-6 bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">集群广播测试</h2>
+        <div class="bg-gray-50 p-4 rounded-lg text-sm text-gray-600 space-y-2">
+            <p>1.修改端口为2117，保持原2025服务正常的情况下，启动一个新服务</p>
+            <p>2.新开页面，基于test2用户连接2117</p>
+            <p>3.发送消息给2025节点，推送到2117的test2用户：curl -X POST -d "Hello World."
+                http://localhost:2025/vh-stomp-wsend/cluster/notify/test2</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let stompClient = null;
+
+    const tokenInput = document.getElementById('tokenInput');
+    const serverInput = document.getElementById('serverInput');
+    const connectButton = document.getElementById('connectButton');
+    const sendButton = document.getElementById('sendButton');
+    const messageInput = document.getElementById('messageInput');
+    const messageContainer = document.getElementById('messageContainer');
+    const connectionStatus = document.getElementById('connectionStatus');
+
+    connectButton.addEventListener('click', connect);
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function connect() {
+      const token = tokenInput.value.trim();
+      const baseUrl = serverInput.value.trim().replace(/\/+$/, '');
+
+      const socket = new SockJS(`${baseUrl}/stomp-ws`, null, {
+            transports: ['websocket', 'xhr-polling']
+        });
+      stompClient = Stomp.over(socket);
+      stompClient.debug = null;
+
+      stompClient.connect(
+        { Authorization: `${token}` },
+        function (frame) {
+          updateStatus('connected');
+          appendMessage('系统', '连接成功，等待消息...', 'system');
+
+          stompClient.subscribe('/user/queue/msg', function (message) {
+            appendMessage('服务器', message.body, 'incoming');
+          });
+
+          stompClient.subscribe('/topic/messages', function (message) {
+              appendMessage('服务器', message.body, 'incoming');
+          });
+
+          sendButton.disabled = false;
+          sendButton.classList.replace('bg-gray-300', 'bg-blue-500');
+          sendButton.classList.replace('text-gray-600', 'text-white');
+          sendButton.classList.remove('cursor-not-allowed');
+        },
+        function (error) {
+          updateStatus('disconnected');
+          appendMessage('系统', '连接失败，正在重试...', 'system');
+          setTimeout(connect, 5000);
+        }
+      );
+    }
+
+    function sendMessage() {
+      const message = messageInput.value.trim();
+      if (message && stompClient?.connected) {
+        stompClient.send('/app/sendMessage', {}, message);
+        appendMessage('我', message, 'outgoing');
+        messageInput.value = '';
+      }
+    }
+
+    function updateStatus(status) {
+      if (status === 'connected') {
+        connectionStatus.innerHTML = '<i class="fa fa-circle text-green-500 mr-1"></i> 已连接';
+      } else {
+        connectionStatus.innerHTML = '<i class="fa fa-circle text-red-500 mr-1"></i> 未连接';
+      }
+    }
+
+    function appendMessage(sender, text, type) {
+      const div = document.createElement('div');
+      div.className = 'mb-2';
+      if (type === 'incoming') {
+        div.innerHTML = `<div class="bg-green-100 p-2 rounded"><strong>${sender}:</strong> ${text}</div>`;
+      } else if (type === 'outgoing') {
+        div.innerHTML = `<div class="bg-blue-100 p-2 rounded text-right"><strong>${sender}:</strong> ${text}</div>`;
+      } else {
+        div.innerHTML = `<div class="text-center text-gray-500">${text}</div>`;
+      }
+      messageContainer.appendChild(div);
+      messageContainer.scrollTop = messageContainer.scrollHeight;
+    }
+
+    window.addEventListener('load', () => {
+      sendButton.disabled = true;
+    });
+</script>
+</body>
+</html>
