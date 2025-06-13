@@ -1,122 +1,161 @@
-# Spring Boot3 + WebSocket STOMP + 集群会话 + token认证 集成
+下面是你提供的 `README.md` 的**优化版本**，重点提升了结构清晰度、语言表达专业性以及整体的可读性和排版美观性，更适合开源项目或团队内部文档：
 
-## Demo:
-* demo html(本地浏览器点开) :  src/main/resources/stomp-websocket-sockjs.html
-* demo截图 :
-![img.png](img.png)
+---
 
+# Spring Boot 3 + WebSocket STOMP + 集群会话 + Token 认证集成示例
 
-## 概述
-本项目展示了如何在Spring Boot应用程序中集成WebSocket和STOMP。它包括了启用实时通信、用户认证和消息广播所需的基本配置和组件。
+## 🔧 Demo 演示
 
-## 核心配置类
+* 打开浏览器访问：`src/main/resources/stomp-websocket-sockjs.html`
+* 示例截图：
 
-```
-src/main/java/io/stu/notify/stomp
-├── NotifyMessage.java
-├── NotifyType.java
-├── StompWebSocketHandler.java
-├── StompWebsocketConfig.java
-└── StompWebsocketInterceptor.java
-```
+  ![img.png](img.png)
 
-### StompWebsocketConfig
-- **功能**: 配置WebSocket端点和消息代理。
-- **设计**: 实现了`WebSocketMessageBrokerConfigurer`接口，用于设置STOMP端点、消息代理和拦截器。
+---
 
-### StompWebsocketInterceptor
-- **功能**: 基于WebSocket连接中的令牌对用户进行认证，基于用户id注册用户会话。
-- **设计**: 实现了`ChannelInterceptor`接口，用于拦截和认证传入的WebSocket消息。
+## 📖 项目简介
 
-### StompWebSocketHandler
-- **功能**: 管理向特定用户发送消息或向所有连接的客户端广播消息。
-- **设计**: 使用`SimpMessagingTemplate`发送消息，使用`SimpUserRegistry`管理用户会话。
+本项目展示了如何在 Spring Boot 应用中集成 WebSocket + STOMP，实现：
 
-### NotifyMessage
-- **功能**: 表示WebSocket通信中使用的自定义消息结构。
-- **设计**: 一个简单的POJO，包含消息ID、类型、接收者、数据和状态字段。
+* 实时消息通信
+* Token 用户认证
+* 点对点消息推送
+* 集群环境下的 WebSocket 会话转发
 
-### NotifyType
-- **功能**: 定义不同类型的通知。
-- **设计**: 一个枚举，包含不同消息类型关联的数据类。
+适用于社交类消息通知、实时状态更新、在线客服等场景。
 
+---
 
-## 示例用法
-- **广播消息**：
-  ```java
-  webSocketHandler.broadcastMessage(new NotifyMessage("messageId", "messageData"));
-  ```
-- **向特定用户发送消息**：
-  ```java
-  webSocketHandler.sendMessage(new NotifyMessage("messageId", "receiverUserId", "messageData"));
-  ```
+## 🧱 核心模块结构
 
-
-# 集群模式会话广播
-
-## 核心实现
-
-`StompNotifyEventListener` 主要基于StompWebSocketHandler异步发送通知消息，并在集群环境下实现WebSocket会话的广播功能。
-
-### 事件处理流程
-
-1. **本地会话检查**：`handlerEvent` 方法首先检查目标用户的WebSocket会话是否在当前节点
-    - 如果会话存在，直接通过 `StompWebSocketHandler` 推送消息
-    - 如果会话不存在，则发布该消息给其它节点处理
-
-2. **集群事件发布**：`publishClusterEvent` 方法通过Redisson将事件发布到Redis主题
-    - 使用Redisson的分布式主题功能实现跨节点消息传递
-    - 所有集群节点都会订阅该主题并接收事件
-
-3. **事件订阅与处理**：`subscribeToTopic` 方法在组件初始化时订阅Redis主题
-    - 当其他节点发布事件时，当前节点会接收到事件并调用 `handlerEvent` 方法
-    - 通过 `isLocalEvent` 参数区分本地产生的事件和集群接收的事件，如果会话在当前节点，则推送给用户
-
-
-### 架构流程图
+路径：`src/main/java/io/stu/notify/stomp`
 
 ```
-┌───────────────────────────────────────────────────────────────────────────────┐
-│                             应用服务节点                                          │
-└───────────────────────────────────────────────────────────────────────────────┘
-│                                                                                   │
-│  ┌───────────────────────────────────────────────────────────────────────────┐  │
-│  │                            事件处理流程                                       │  │
-│  │  ┌───────────────────┐    ┌────────────────────────────────────────────┐    │  │
-│  │  │ NotifyMessageEvent│───▶│ StompNotifyEventListener                    │    │  │
-│  │  │ (本地或集群)        │    │                                            │    │  │
-│  │  └───────────────────┘     │  ┌──────────────────────────────────────┐  │    │  │
-│  │                            │  │  判断会话是否在当前节点                │  │    │  │
-│  │                            │  │  ┌─────────────────────┐  ┌─────────┐ │  │    │  │
-│  │                            │  │  │  是                 │  │  否    │ │  │    │  │
-│  │                            │  │  └───────────┬─────────┘  └────┬────┘ │  │    │  │
-│  │                            │  │              │                  │      │  │    │  │
-│  │                            │  │  ┌───────────▼─────────┐  ┌────▼─────┐ │  │    │  │
-│  │                            │  │  │ 通过StompWebSocket   │   │ 发布到     │ │  │    │  │
-│  │                            │  │  │ Handler直接推送消息   │  │ Redis集群给其它节点处理 │ │  │    │  │
-│  │                            │  │  └─────────────────────┘  └───────────┘ │  │    │  │
-│  │                            │  └──────────────────────────────────────┘  │    │  │
-│  │                            └────────────────────────────────────────────┘    │  │
-│  └───────────────────────────────────────────────────────────────────────────┘  │
+├── NotifyMessage.java               // WebSocket 消息结构定义
+├── NotifyType.java                  // 消息类型枚举
+├── StompWebSocketHandler.java       // 消息推送管理器
+├── StompWebsocketConfig.java        // STOMP/WebSocket 配置
+└── StompWebsocketInterceptor.java   // 鉴权拦截器
 ```
 
-# 业务集成：消息持久化与推送
+### 🔌 `StompWebsocketConfig`
 
-## 核心实现类：NotifyManager
-- **功能**: 负责消息持久化到数据库，发送异步消息给StompNotifyEventListener做进一步的消息集群推送。
+* **作用**：配置 WebSocket 端点与消息代理。
+* **说明**：实现 `WebSocketMessageBrokerConfigurer` 接口。
+
+### 🛡️ `StompWebsocketInterceptor`
+
+* **作用**：拦截 WebSocket 连接请求，基于 Token 鉴权。
+* **说明**：实现 `ChannelInterceptor`，绑定用户与会话。
+
+### 📬 `StompWebSocketHandler`
+
+* **作用**：管理用户会话及消息发送（广播/点对点）。
+* **说明**：封装 `SimpMessagingTemplate`，提供统一的推送入口。
+
+### 💬 `NotifyMessage`
+
+* **作用**：自定义的消息格式对象。
+* **字段**：消息 ID、接收者、消息体、类型、状态等。
+
+### 🧾 `NotifyType`
+
+* **作用**：定义支持的通知类型。
+* **说明**：使用枚举 + 类型校验机制，避免数据结构不一致。
+
+---
+
+## 🚀 使用示例
+
+### 广播消息
+
+```java
+webSocketHandler.broadcastMessage(new NotifyMessage("messageId", "messageData"));
+```
+
+### 向指定用户发送消息
+
+```java
+webSocketHandler.sendMessage(new NotifyMessage("messageId", "receiverUserId", "messageData"));
+```
+
+---
+
+# ☁️ 集群模式：跨节点会话转发
+
+## ✨ 核心类：`StompNotifyEventListener`
+
+用于支持 **分布式 WebSocket 会话处理**，结合 Redisson + Redis Topic 实现。
+
+### 📌 处理流程
+
+1. **检查本地会话**
+
+    * 如果当前节点存在目标用户会话：**直接推送**
+    * 否则：**广播事件到其他节点**
+
+2. **集群事件广播**
+
+    * 使用 `Redisson` 发布事件到 Redis Topic
+    * 所有节点订阅该 Topic 实现集群通信
+
+3. **跨节点接收处理**
+
+    * 接收到广播事件后判断是否拥有目标会话
+    * 若存在：推送给用户，否则忽略
+
+---
+
+## 📈 架构图（简化版）
+
+```
+  NotifyMessageEvent
+         │
+         ▼
+ StompNotifyEventListener
+         │
+    ┌────┴────────────┐
+    │                 │
+[当前节点有会话]   [无会话：广播事件]
+    │                 │
+    ▼                 ▼
+WebSocket推送     Redis发布事件
+                      │
+                      ▼
+           其他节点监听事件并推送
+```
+
+---
+
+## 💾 消息持久化与业务集成
+
+### 核心类：`NotifyManager`
+
+负责将消息保存至数据库，并异步推送至集群节点。
 
 ```java
 @Transactional(rollbackFor = Throwable.class)
 public NotifyMessageLog saveAndPublish(NotifyMessageLog msg) {
     NotifyType.valueOf(msg.getType()).checkDataType(msg.getData());
 
-    // 持久化消息到数据库
+    // 1. 消息持久化
     notifyMessageLogRepository.save(msg);
-    // 发送异步消息，交由StompNotifyEventListener做集群广播，发送给指定用户
+
+    // 2. 异步推送事件
     SpringContextUtil.publishEvent(new NotifyMessageEvent(msg));
     return msg;
 }
 ```
 
-## 结论
-本项目为在Spring Boot应用程序中集成WebSocket和STOMP提供了基本设置。它涵盖了用户认证、消息广播和点对点消息传递。你可以根据具体需求扩展此设置。
+---
+
+## ✅ 总结
+
+本项目提供了一个完整的 WebSocket 实时通信集成方案，覆盖：
+
+* STOMP 协议支持
+* Token 认证与用户绑定
+* 分布式消息转发（基于 Redis）
+* 消息持久化与业务解耦
+
+可作为企业级项目中的即时通讯/通知模块的参考模板。
