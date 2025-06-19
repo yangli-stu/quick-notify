@@ -1,5 +1,7 @@
 # Spring Boot 3 + WebSocket STOMP + 集群会话 + Token 认证集成示例
 
+(该代码已用于生产验证，轻松应对万级日活用户)
+
 ## 🔧 Demo 演示
 
 * 本地启动：安装好redis后直接启动即可，无需依赖mysql
