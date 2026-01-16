@@ -95,6 +95,7 @@
 
           stompClient.subscribe('/user/queue/msg', function (message) {
             appendMessage('服务器', message.body, 'incoming');
+            sendAck(JSON.parse(message.body).id);
           });
 
           stompClient.subscribe('/topic/messages', function (message) {
@@ -121,6 +122,13 @@
         appendMessage('我', message, 'outgoing');
         messageInput.value = '';
       }
+    }
+
+    function sendAck(id) {
+      if (stompClient?.connected) {
+        stompClient.send('/app/ack', {}, id);
+      }
+      console.log("已发送ack：", id); // 打印日志确认发送内容
     }
 
     function updateStatus(status) {

@@ -9,12 +9,15 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.simp.user.SimpUser;
 import org.springframework.messaging.simp.user.SimpUserRegistry;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
 import java.security.Principal;
+import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Component
@@ -39,6 +42,10 @@ public class StompWebsocketInterceptor implements ChannelInterceptor {
                 if(StringUtils.isEmpty(userId)){
                     log.error("token is overtime");
                     throw new IllegalStateException("The token is illegal");
+                }
+                if (Optional.ofNullable(simpUserRegistry.getUser(userId)).map(SimpUser::getSessions).map(Set::size).orElse(0) > 10) {
+                    log.error("异常 user {} connect stomp exceed max limit", userId);
+                    throw new IllegalStateException("The user connect stomp exceed max limit");
                 }
                 // 注册用户
                 accessor.setUser(new MyPrincipal(userId));

@@ -35,7 +35,16 @@ public class NotifyMessage {
     @JsonProperty("viewed")
     private boolean viewed = false;
 
+    @Setter
     @JsonProperty("created")
     private long created;
+
+    @Setter
+    @JsonProperty("ack_retry_count")
+    private int ackRetryCount = 0;
+
+    @Setter
+    @JsonProperty("ack_last_sent")
+    private long ackLastSent = 0L;
 
 }

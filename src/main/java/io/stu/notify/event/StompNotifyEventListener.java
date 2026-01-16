@@ -28,18 +28,19 @@ public class StompNotifyEventListener {
     }
 
     private void handlerEvent(NotifyMessageEvent event, boolean isLocalEvent) {
-        val msgLog = event.notifyMessageLog();
-        // 如果ws会话在当前节点，则直接推送
-        if (stompWebSocketHandler.hasSession(event.notifyMessageLog().getReceiver())) {
-            log.debug("msg id {}, start io.stu.notify user {}. type {}", msgLog.getId(), msgLog.getReceiver(), msgLog.getType());
-            stompWebSocketHandler.sendMessage(event.notifyMessageLog().convert());
-            log.debug("msg id {}, end io.stu.notify user {}. type {}", msgLog.getId(), msgLog.getReceiver(), msgLog.getType());
+        val msgLog = event.notifyMessageLog().convert();
+        if (isLocalEvent) {
+            publishClusterEvent(event);
             return;
         }
 
-        // ws会话不在当前节点，且是本节点产生的消息，则广播给集群其它节点处理
-        if (isLocalEvent) {
-            publishClusterEvent(event);
+        // 如果ws会话在当前节点，则直接推送
+        if (stompWebSocketHandler.hasSession(event.notifyMessageLog().getReceiver())) {
+            log.debug("handlerEvent::msg id {}, start notify user {}. type {}", msgLog.getId(), msgLog.getReceiver(), msgLog.getType());
+            stompWebSocketHandler.sendMessageWithAck(msgLog);
+            log.debug("handlerEvent::msg id {}, end notify user {}. type {}", msgLog.getId(), msgLog.getReceiver(), msgLog.getType());
+        } else {
+            log.debug("handlerEvent::msg id {}, cur node don't find notify user {}. type {}", msgLog.getId(), msgLog.getReceiver(), msgLog.getType());
         }
     }
 
