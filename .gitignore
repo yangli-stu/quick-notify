@@ -36,3 +36,4 @@ build/
 
 src/test/resources/language/
 .env
+.cursor/

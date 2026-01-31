@@ -1,368 +1,916 @@
-# Spring Boot 3 + WebSocket STOMP + 集群会话 + Token 认证集成示例
+<p align="center">
+  <h1 align="center">Quick-Notify</h1>
+  <p align="center">
+    基于 Spring Boot 3 + WebSocket STOMP + Redis 的企业级实时消息推送系统
+    <br />
+    <strong>已在生产环境验证，轻松应对万级日活用户</strong>
+  </p>
+</p>
 
-(该代码已用于生产验证，轻松应对万级日活用户)
+<p align="center">
+  <a href="#特性">特性</a> •
+  <a href="#快速开始">快速开始</a> •
+  <a href="#核心功能详解">核心功能详解</a> •
+  <a href="#接入指南">接入指南</a> •
+  <a href="#api-文档">API 文档</a>
+</p>
 
-## 🔧 Demo 演示
+---
 
-* 本地启动：安装好redis后直接启动即可，无需依赖mysql
+## 特性
+
+| 特性 | 描述 |
+|------|------|
+| **实时推送** | 基于 WebSocket + STOMP 协议，毫秒级消息送达 |
+| **Token 认证** | 支持 JWT 等多种认证方式，安全可靠 |
+| **消息确认 (ACK)** | 自动重试机制，确保消息可靠送达 |
+| **集群支持** | 基于 Redis Pub/Sub，支持多节点水平扩展 |
+| **消息持久化** | 支持历史消息存储与查询 |
+| **开箱即用** | 完整的前后端示例，5 分钟快速上手 |
+
+---
+
+## 技术栈
+
+| 技术 | 版本 | 说明 |
+|------|------|------|
+| Spring Boot | 3.2.11 | 应用框架 |
+| Java | 21 | 开发语言 |
+| WebSocket + STOMP | - | 实时通信协议 |
+| SockJS | 1.x | 浏览器兼容降级 |
+| Redisson | 3.37.0 | Redis 客户端 + 分布式支持 |
+| CosId | 2.8.1 | 分布式雪花 ID 生成 |
+| Spring Data JPA | - | 数据持久化 |
+
+---
+
+## 快速开始
+
+### 环境要求
+
+- Java 21+
+- Maven 3.8+
+- Redis 6+ (或 Docker)
+
+### 1. 启动 Redis
+
 ```bash
 docker run -d --name redis -p 6379:6379 redis
 ```
-* 打开浏览器访问：`src/main/resources/stomp-websocket-sockjs.html`
-* 示例截图：
 
-  ![img.png](img.png)
+### 2. 克隆并运行
 
----
-
-## 📖 项目简介
-
-本项目展示了如何在 Spring Boot 应用中集成 WebSocket + STOMP，实现：
-
-* 实时消息通信
-* Token 用户认证
-* 点对点消息推送
-* **消息确认机制（ACK）**：确保消息可靠送达，支持自动重试
-* 集群环境下的 WebSocket 会话转发
-
-适用于服务器消息推送，社交类消息通知、实时状态更新、在线客服等场景。
-
----
-
-## 🧱 核心模块结构
-
-路径：`src/main/java/io/stu/notify/stomp`
-
-```
-├── NotifyMessage.java               // WebSocket 消息结构定义
-├── NotifyType.java                  // 消息类型枚举
-├── StompWebSocketHandler.java       // 消息推送管理器
-├── StompWebsocketConfig.java        // STOMP/WebSocket 配置
-└── StompWebsocketInterceptor.java   // 鉴权拦截器
+```bash
+git clone https://github.com/your-repo/quick-notify.git
+cd quick-notify
+mvn spring-boot:run
 ```
 
-### 🔌 `StompWebsocketConfig`
+### 3. 打开测试页面
 
-* **作用**：配置 WebSocket 端点与消息代理。
-* **说明**：实现 `WebSocketMessageBrokerConfigurer` 接口。
+浏览器访问 `src/main/resources/stomp-websocket-sockjs.html`
 
-### 🛡️ `StompWebsocketInterceptor`
+![Demo Screenshot](img.png)
 
-* **作用**：拦截 WebSocket 连接请求，基于 Token 鉴权。
-* **说明**：实现 `ChannelInterceptor`，绑定用户与会话。
+### 4. 发送测试消息(模拟服务器推送消息)
 
-### 📬 `StompWebSocketHandler`
+```bash
+# 发送给指定用户
+curl -X POST -d "Hello World" http://localhost:2025/vh-stomp-wsend/push_all_obj/test1
 
-* **作用**：管理用户会话及消息发送（广播/点对点），实现消息确认（ACK）机制。
-* **说明**：封装 `SimpMessagingTemplate`，提供统一的推送入口，支持消息可靠送达与自动重试。
-
-### 💬 `NotifyMessage`
-
-* **作用**：自定义的消息格式对象。
-* **字段**：消息 ID、接收者、消息体、类型、状态等。
-
-### 🧾 `NotifyType`
-
-* **作用**：定义支持的通知类型。
-* **说明**：使用枚举 + 类型校验机制，避免数据结构不一致。
+# 广播给所有在线用户
+curl -X POST -d "广播消息" http://localhost:2025/vh-stomp-wsend/push_all_obj
+```
 
 ---
 
-## 🚀 使用示例
+## 核心功能详解
 
-### 广播消息
+### 1. Token 认证
+
+#### 认证流程
+
+```
+┌──────────────┐                              ┌──────────────┐
+│    客户端     │                              │    服务端     │
+└──────┬───────┘                              └──────┬───────┘
+       │                                             │
+       │  1. STOMP CONNECT                           │
+       │  ┌─────────────────────────────┐            │
+       │  │ CONNECT                      │           │
+       │  │ Authorization: Bearer <JWT>  │           │
+       │  │ accept-version: 1.2          │           │
+       │  └─────────────────────────────┘            │
+       │ ─────────────────────────────────────────>  │
+       │                                             │
+       │                    2. StompWebsocketInterceptor 拦截
+       │                       ├─ 提取 Authorization 头
+       │                       ├─ 解析 Token 获取 userId
+       │                       ├─ 校验用户连接数 (≤10)
+       │                       └─ 绑定 Principal 到会话
+       │                                             │
+       │  3. STOMP CONNECTED                         │
+       │ <─────────────────────────────────────────  │
+       │                                             │
+       │  4. 后续消息自动携带用户身份                    │
+       │ ─────────────────────────────────────────>  │
+```
+
+#### 核心代码
+
+**服务端拦截器** (`StompWebsocketInterceptor.java`)：
 
 ```java
-NotifyMessage message = NotifyMessage.builder()
-    .id("msg-123")
-    .data("广播消息内容")
-    .type(NotifyType.STRING_MSG.name())
-    .build();
+@Component
+public class StompWebsocketInterceptor implements ChannelInterceptor {
 
-webSocketHandler.broadcastMessage(message);
+    @Override
+    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(
+            message, StompHeaderAccessor.class);
+        
+        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+            // 1. 从请求头提取 Token
+            String token = accessor.getNativeHeader("Authorization").get(0);
+            
+            // 2. 解析 Token 获取用户ID（支持 JWT 或自定义方式）
+            String userId = extractUserFromToken(token);
+            
+            // 3. 校验用户连接数限制
+            List<String> existingSessions = Optional
+                .ofNullable(simpUserRegistry.getUser(userId))
+                .map(SimpUser::getSessions)
+                .map(sessions -> sessions.stream().map(SimpSession::getId).toList())
+                .orElse(List.of());
+                
+            if (existingSessions.size() > 10) {
+                throw new IllegalStateException("用户连接数超限");
+            }
+            
+            // 4. 绑定用户身份到 WebSocket 会话
+            accessor.setUser(new MyPrincipal(userId));
+        }
+        return message;
+    }
+    
+    private String extractUserFromToken(String token) {
+        // 开发环境：直接使用 token 作为用户ID
+        if (SpringContextUtil.isDevEnv() && token.startsWith("test")) {
+            return token;
+        }
+        // 生产环境：解析 JWT
+        return SpringContextUtil.getBean(JwtDecoder.class)
+            .decode(token).getSubject();
+    }
+}
 ```
 
-### 向指定用户发送消息
-
-```java
-NotifyMessage message = NotifyMessage.builder()
-    .id("msg-123")
-    .receiver("userId")
-    .data("消息内容")
-    .type(NotifyType.STRING_MSG.name())
-    .build();
-
-webSocketHandler.sendMessage(message, null);
-```
-
-### 向指定用户发送消息（带 ACK 确认）
-
-```java
-NotifyMessage message = NotifyMessage.builder()
-    .id("msg-123")
-    .receiver("userId")
-    .data("消息内容")
-    .type(NotifyType.STRING_MSG.name())
-    .build();
-
-webSocketHandler.sendMessageWithAck(message);
-```
-
-**说明**：使用 `sendMessageWithAck` 发送的消息会：
-1. 为每个用户会话创建 ACK 记录
-2. 等待客户端确认（默认 5 秒）
-3. 未确认时自动重试（最多 12 次，总时长 1 分钟）
-
----
-
-## ✅ 消息确认机制（ACK）
-
-### 🎯 设计目标
-
-确保消息可靠送达，解决网络抖动、客户端离线等场景下的消息丢失问题。
-
-### 📋 核心特性
-
-* **自动重试**：未收到 ACK 时自动重试发送
-* **会话级追踪**：为每个 WebSocket 会话独立追踪消息状态
-* **过期清理**：超时消息自动清理，避免内存泄漏
-* **集群支持**：基于 Redis 实现分布式 ACK 管理
-
-### 🔄 工作流程
-
-```
-1. 发送消息
-   └─> 为每个 session 创建 ACK 记录（存储到 Redis）
-   
-2. 客户端接收消息
-   └─> 通过 /app/ack 端点发送 ACK 确认
-   
-3. 服务端处理 ACK
-   └─> 从 Redis 移除对应记录
-   
-4. 定时任务（每 5 秒）
-   ├─> 检查未确认消息（创建时间 > 5 秒）
-   ├─> 重试发送（未超过最大重试次数）
-   └─> 清理过期消息（超过 TTL 或重试次数）
-```
-
-### ⚙️ 配置参数
-
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `ACK_CHECK_WAIT_MS` | 5 秒 | 等待 ACK 的时间窗口 |
-| `ACK_RETRY_INTERVAL_MS` | 5 秒 | 重试间隔 |
-| `ACK_MESSAGE_TTL_MS` | 60 秒 | 消息最大存活时间 |
-| `ACK_MAX_RETRY_COUNT` | 12 次 | 最大重试次数（自动计算） |
-
-**位置**：`StompWebSocketHandler.java` 第 38-41 行
-
-### 📦 存储方式
-
-#### Redis 模式（默认）
-
-* **存储位置**：Redis Map (`stomp::pending_messages`)
-* **Key 格式**：`messageId::sessionId`
-* **优势**：支持集群部署，数据持久化
-* **适用场景**：生产环境、多节点部署
-
-#### 本地缓存模式（可选）
-
-* **存储位置**：内存 `ConcurrentHashMap`
-* **配置**：设置 `enableLocalAck = true`
-* **优势**：性能更高，无网络开销
-* **适用场景**：单节点部署、开发测试
-
-### 🔌 客户端集成
-
-#### 1. 接收消息并发送 ACK
+**客户端连接**：
 
 ```javascript
-stompClient.subscribe('/user/queue/msg', function (message) {
-    const msgData = JSON.parse(message.body);
-    console.log('收到消息:', msgData);
-    
-    // 发送 ACK 确认
-    stompClient.send('/app/ack', {}, msgData.id);
-});
+const stompClient = Stomp.over(new SockJS('/stomp-ws'));
+
+stompClient.connect(
+    { Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9...' },  // JWT Token
+    function(frame) {
+        console.log('连接成功，用户身份已绑定');
+    },
+    function(error) {
+        console.error('连接失败:', error);
+    }
+);
 ```
 
-#### 2. STOMP 端点
+#### 自定义认证方式
 
-* **接收消息**：`/user/queue/msg`
-* **发送 ACK**：`/app/ack`（Payload 为消息 ID）
-
-### 📊 监控与日志
-
-系统会记录以下日志：
-
-* `[ACK-REDIS] 消息入队`：消息进入 ACK 队列
-* `[ACK-REDIS] 确认成功`：收到客户端 ACK
-* `[ACK-REDIS] 重发`：触发重试机制
-* `[ACK-REDIS] 消息过期/超限`：消息被清理
-
-**示例日志**：
-```
-[ACK-REDIS] 消息入队, msgId msg-123, sessionId sess-456, receiver user-789
-[ACK-REDIS] 确认成功, msgId msg-123, sessionId sess-456, retryCount 0
-[ACK-REDIS] 定时处理完成, total 10, retried 2, expired 1, not online 0
-```
-
-### 🎨 架构设计
-
-```
-┌─────────────────┐
-│  sendMessageWithAck │
-└────────┬──────────┘
-         │
-         ├─> 发送消息到 WebSocket
-         │
-         └─> 创建 ACK 记录（Redis）
-                    │
-                    ▼
-         ┌──────────────────┐
-         │  Redis Map      │
-         │  (pending_msgs) │
-         └────────┬─────────┘
-                  │
-         ┌────────┴─────────┐
-         │                   │
-    ┌────▼────┐        ┌─────▼─────┐
-    │ 客户端ACK │        │  定时重试任务 │
-    │ /app/ack │        │ (每5秒)    │
-    └────┬────┘        └─────┬─────┘
-         │                   │
-         └─────────┬─────────┘
-                   │
-            ┌──────▼──────┐
-            │ 移除ACK记录  │
-            └─────────────┘
-```
-
-### 💡 最佳实践
-
-1. **消息 ID 唯一性**：确保消息 ID 全局唯一，避免 ACK 冲突
-2. **及时发送 ACK**：客户端收到消息后立即发送 ACK，避免不必要的重试
-3. **处理重复消息**：由于重试机制，客户端可能收到重复消息，需要做幂等处理
-4. **监控重试率**：关注日志中的重试次数，评估网络质量
-
-### ⚠️ 注意事项
-
-* **消息去重**：客户端应实现消息去重逻辑（基于消息 ID）
-* **离线处理**：用户离线时，消息会在 TTL 到期后自动清理
-* **多会话场景**：同一用户多个会话时，每个会话独立追踪 ACK
-* **性能影响**：大量未确认消息会增加 Redis 内存占用，建议监控
-
----
-
-# ☁️ 集群模式：跨节点会话转发
-
-## ✨ 核心类：`StompNotifyEventListener`
-
-用于支持 **分布式 WebSocket 会话处理**，结合 Redisson + Redis Topic 实现。
-
-### 📌 处理流程
-
-1. **检查本地会话**
-
-    * 如果当前节点存在目标用户会话：**直接推送**
-    * 否则：**广播事件到其他节点**
-
-2. **集群事件广播**
-
-    * 使用 `Redisson` 发布事件到 Redis Topic
-    * 所有节点订阅该 Topic 实现集群通信
-
-3. **跨节点接收处理**
-
-    * 接收到广播事件后判断是否拥有目标会话
-    * 若存在：推送给用户，否则忽略
-
----
-
-## 📈 架构图（简化版）
-
-```
-  NotifyMessageEvent
-         │
-         ▼
- StompNotifyEventListener
-         │
-    ┌────┴────────────┐
-    │                 │
-[当前节点有会话]   [无会话：广播事件]
-    │                 │
-    ▼                 ▼
-WebSocket推送     Redis发布事件
-                      │
-                      ▼
-           其他节点监听事件并推送
-```
-
----
-
-## 💾 消息持久化与业务集成
-
-### 核心类：`NotifyManager`
-
-负责将消息保存至数据库，并异步推送至集群节点。
+如需接入其他认证系统，修改 `extractUserFromToken` 方法：
 
 ```java
-@Transactional(rollbackFor = Throwable.class)
-public NotifyMessageLog saveAndPublish(NotifyMessageLog msg) {
-    NotifyType.valueOf(msg.getType()).checkDataType(msg.getData());
-
-    // 1. 消息持久化
-    notifyMessageLogRepository.save(msg);
-
-    // 2. 异步推送事件
-    SpringContextUtil.publishEvent(new NotifyMessageEvent(msg));
-    return msg;
+private String extractUserFromToken(String token) {
+    // 方式1：JWT 解析
+    return jwtDecoder.decode(token).getSubject();
+    
+    // 方式2：调用用户中心验证
+    return userCenterClient.validateToken(token).getUserId();
+    
+    // 方式3：Redis Session 验证
+    return redisTemplate.opsForValue().get("session:" + token);
 }
 ```
 
 ---
 
-## ✅ 总结
+### 2. 消息确认机制 (ACK)
 
-本项目提供了一个完整的 WebSocket 实时通信集成方案，覆盖：
+#### 设计目标
 
-* ✅ STOMP 协议支持
-* ✅ Token 认证与用户绑定
-* ✅ **消息确认机制（ACK）**：可靠送达、自动重试
-* ✅ 分布式消息转发（基于 Redis）
-* ✅ 消息持久化与业务解耦
+解决以下场景的消息丢失问题：
+- 网络抖动导致消息未送达
+- 客户端崩溃未处理消息
+- 多设备同步确保每个设备都收到
 
-可作为企业级项目中的即时通讯/通知模块的参考模板。
+#### 工作流程
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        消息发送阶段                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  sendMessageWithAck(message)                                        │
+│         │                                                           │
+│         ├──────────────────────────────────────────────────────┐    │
+│         │                                                      │    │
+│         ▼                                                      ▼    │
+│  ┌─────────────────┐                              ┌─────────────────┐
+│  │ 推送到 WebSocket │                              │ 创建 ACK 记录    │
+│  │ /user/queue/msg │                              │ Redis Hash      │
+│  └────────┬────────┘                              └────────┬────────┘
+│           │                                                │        │
+│           │  Key: stomp::pending_messages                  │        │
+│           │  Field: {msgId}::{sessionId}                   │        │
+│           │  Value: NotifyMessage 对象                      │        │
+│           │                                                │        │
+└───────────┼────────────────────────────────────────────────┼────────┘
+            │                                                │
+            ▼                                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        客户端处理阶段                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  客户端收到消息                                                       │
+│         │                                                           │
+│         ├─> 处理业务逻辑（需做幂等处理）                                 │
+│         │                                                           │
+│         └─> 发送 ACK 确认                                            │
+│              stompClient.send('/app/ack', {}, messageId)            │
+│                     │                                               │
+│                     ▼                                               │
+│              服务端收到 ACK                                           │
+│                     │                                               │
+│                     └─> 从 Redis 移除 ACK 记录                        │
+│                         log: [ACK-REDIS] 确认成功                     │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+            │
+            │ 如果客户端未发送 ACK
+            ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        定时重试阶段（每 5 秒）                         │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  @Scheduled(fixedDelay = 5000)                                      │
+│  retryRedisMessages()                                               │
+│         │                                                           │
+│         ├─> 遍历 Redis 中所有待确认消息                                │
+│         │                                                           │
+│         ├─> 检查条件：                                                │
+│         │   • 创建时间 > 5秒（等待窗口）                                │
+│         │   • 重试次数 < 12次                                         │
+│         │   • 总时长 < 60秒                                           │
+│         │   • 目标 Session 仍在线                                     │
+│         │                                                           │
+│         ├─> 符合条件：重新发送消息，retryCount++                        │
+│         │                                                           │
+│         └─> 超过限制：移除记录，log: [ACK-REDIS] 消息过期                │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### 配置参数
+
+| 参数 | 默认值 | 说明 | 修改位置 |
+|------|--------|------|----------|
+| `ACK_CHECK_WAIT_MS` | 5000ms | 首次检查等待时间 | `StompWebSocketHandler.java:38` |
+| `ACK_RETRY_INTERVAL_MS` | 5000ms | 重试间隔 | `StompWebSocketHandler.java:39` |
+| `ACK_MESSAGE_TTL_MS` | 60000ms | 消息最大存活时间 | `StompWebSocketHandler.java:40` |
+| `ACK_MAX_RETRY_COUNT` | 12 | 最大重试次数（自动计算） | `StompWebSocketHandler.java:41` |
+| `enableLocalAck` | false | 是否使用本地缓存 | `StompWebSocketHandler.java:44` |
+
+#### 核心代码
+
+**发送带 ACK 的消息**：
+
+```java
+public void sendMessageWithAck(NotifyMessage message) {
+    SimpUser user = userRegistry.getUser(message.getReceiver());
+    if (user != null && user.hasSessions()) {
+        // 为用户的每个会话（多设备）分别创建 ACK 记录
+        for (SimpSession session : user.getSessions()) {
+            // 1. 发送消息到指定 Session
+            sendMessage(message, session.getId());
+            // 2. 创建 ACK 追踪记录
+            addAckMessageRecord(message, session.getId());
+        }
+    }
+}
+
+private void addToRedis(NotifyMessage message, String sessionId) {
+    String ackKey = buildAckKey(message.getId(), sessionId);  // msgId::sessionId
+    RMap<String, NotifyMessage> map = redisson.getMap(PENDING_MAP_KEY);
+    
+    message.setCreated(System.currentTimeMillis());
+    message.setAckRetryCount(0);
+    message.setAckLastSent(System.currentTimeMillis());
+    
+    map.put(ackKey, message);
+    log.info("[ACK-REDIS] 消息入队, msgId {}, sessionId {}, receiver {}",
+        message.getId(), sessionId, message.getReceiver());
+}
+```
+
+**客户端 ACK 处理**：
+
+```javascript
+stompClient.subscribe('/user/queue/msg', function(message) {
+    const data = JSON.parse(message.body);
+    
+    // 1. 幂等处理（防止重复消息）
+    if (processedIds.has(data.id)) {
+        stompClient.send('/app/ack', {}, data.id);  // 仍需发送 ACK
+        return;
+    }
+    processedIds.add(data.id);
+    
+    // 2. 处理业务逻辑
+    handleNotification(data);
+    
+    // 3. 发送 ACK 确认（重要！）
+    stompClient.send('/app/ack', {}, data.id);
+});
+```
+
+#### 监控日志
+
+```
+# 消息入队
+[ACK-REDIS] 消息入队, msgId msg-123, sessionId sess-456, receiver user-789
+
+# 确认成功
+[ACK-REDIS] 确认成功, msgId msg-123, sessionId sess-456, retryCount 0
+
+# 重试发送
+[ACK-REDIS] 重发, msgId msg-123, sessionId sess-456, retryCount 3
+
+# 定时任务汇总
+[ACK-REDIS] 定时处理完成, total 10, retried 2, expired 1, not online 0
+```
 
 ---
 
-## 📚 快速开始
+### 3. 集群消息推送
 
-### 1. 环境准备
+#### 问题场景
 
-```bash
-# 启动 Redis
-docker run -d --name redis -p 6379:6379 redis
+在多节点部署时，用户可能连接到任意节点：
+
+```
+用户 A 连接到 ──> 节点 1
+用户 B 连接到 ──> 节点 2
+
+业务系统调用节点 1 发送消息给用户 B
+问题：节点 1 没有用户 B 的 WebSocket 会话，如何推送？
 ```
 
-### 2. 启动应用
+#### 解决方案
 
-```bash
-mvn spring-boot:run
+使用 Redis Pub/Sub 实现跨节点消息转发：
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                           业务调用                                   │
+│                                                                     │
+│  notifyManager.saveAndPublish(message)  // 发送给用户 B               │
+│         │                                                           │
+└─────────┼───────────────────────────────────────────────────────────┘
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         节点 1 处理                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  StompNotifyEventListener.handler(event)                            │
+│         │                                                           │
+│         ├─> 检查本地是否有用户 B 的会话                                 │
+│         │   hasSession("userB") == false                            │
+│         │                                                           │
+│         └─> 发布事件到 Redis Topic                                    │
+│             topic.publish(NotifyMessageEvent)                       │
+│                     │                                               │
+│                     │  Topic: stomp::ws_notify_topic                │
+│                     │                                               │
+└─────────────────────┼───────────────────────────────────────────────┘
+                      │
+                      │ Redis Pub/Sub 广播到所有订阅节点
+                      │
+          ┌───────────┴───────────┐
+          │                       │
+          ▼                       ▼
+┌─────────────────────┐ ┌─────────────────────┐
+│      节点 1         │ │      节点 2         │
+│                     │ │                     │
+│  收到事件           │ │  收到事件           │
+│  hasSession = false │ │  hasSession = true  │
+│  忽略               │ │                     │
+│                     │ │  sendMessageWithAck │
+│                     │ │  推送给用户 B       │
+└─────────────────────┘ └─────────────────────┘
 ```
 
-### 3. 测试 ACK 功能
+#### 核心代码
 
-1. 打开浏览器访问：`src/main/resources/stomp-websocket-sockjs.html`
-2. 使用 Token 连接（如：`test1`）
-3. 通过 API 发送消息：
-   ```bash
-   curl -X POST -d "测试消息" http://localhost:2025/vh-stomp-wsend/push_all_obj/test1
-   ```
-4. 观察浏览器控制台，确认收到消息并自动发送 ACK
-5. 查看服务端日志，确认 ACK 处理流程
+**事件监听器** (`StompNotifyEventListener.java`)：
 
-### 4. 测试重试机制
+```java
+@Component
+public class StompNotifyEventListener {
 
-断开网络连接后发送消息，观察服务端日志中的重试记录。
+    private static final String NOTIFY_TOPIC = "stomp::ws_notify_topic";
+
+    @Autowired
+    private StompWebSocketHandler stompWebSocketHandler;
+    @Autowired
+    private Redisson redisson;
+
+    // 监听本地 Spring 事件
+    @Async
+    @TransactionalEventListener
+    public void handler(NotifyMessageEvent event) {
+        handlerEvent(event, true);  // isLocalEvent = true
+    }
+
+    private void handlerEvent(NotifyMessageEvent event, boolean isLocalEvent) {
+        NotifyMessage msg = event.notifyMessageLog().convert();
+        
+        if (isLocalEvent) {
+            // 本地事件：广播到 Redis，让集群所有节点都能处理
+            publishClusterEvent(event);
+            return;
+        }
+
+        // 集群事件：检查本地是否有目标用户的会话
+        if (stompWebSocketHandler.hasSession(msg.getReceiver())) {
+            log.debug("本地有会话，直接推送, msgId: {}, receiver: {}", 
+                msg.getId(), msg.getReceiver());
+            stompWebSocketHandler.sendMessageWithAck(msg);
+        } else {
+            log.debug("本地无会话，忽略, msgId: {}, receiver: {}",
+                msg.getId(), msg.getReceiver());
+        }
+    }
+
+    // 发布到 Redis Topic
+    private void publishClusterEvent(NotifyMessageEvent event) {
+        RTopic topic = redisson.getTopic(NOTIFY_TOPIC);
+        topic.publish(event);
+    }
+
+    // 启动时订阅 Redis Topic
+    @PostConstruct
+    public void subscribeToTopic() {
+        RTopic topic = redisson.getTopic(NOTIFY_TOPIC);
+        topic.addListener(NotifyMessageEvent.class, 
+            (channel, event) -> handlerEvent(event, false));  // isLocalEvent = false
+    }
+}
+```
+
+---
+
+### 4. 消息持久化
+
+#### 持久化流程
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        NotifyManager.saveAndPublish()               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  @Transactional                                                     │
+│  public NotifyMessageLog saveAndPublish(NotifyMessageLog msg) {     │
+│         │                                                           │
+│         ├─> 1. 类型校验                                              │
+│         │   NotifyType.valueOf(msg.getType()).checkDataType(data)   │
+│         │                                                           │
+│         ├─> 2. 持久化到数据库                                         │
+│         │   notifyMessageLogRepository.save(msg)                    │
+│         │   • 自动生成雪花 ID                                         │
+│         │   • 自动填充 created/lastModified                          │
+│         │                                                           │
+│         └─> 3. 发布事件（触发 WebSocket 推送）                         │
+│             SpringContextUtil.publishEvent(new NotifyMessageEvent)  │
+│                                                                     │
+│  }                                                                  │
+└─────────────────────────────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        数据库表结构                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  CREATE TABLE notify_log (                                          │
+│      id           VARCHAR(32) PRIMARY KEY,  -- 雪花ID，前缀: ntf_     │
+│      type         VARCHAR(32) NOT NULL,     -- 消息类型              │
+│      receiver     VARCHAR(64) NOT NULL,     -- 接收者用户ID          │
+│      data         JSON,                     -- 消息内容              │
+│      viewed       BOOLEAN DEFAULT FALSE,    -- 是否已读              │
+│      version      BIGINT DEFAULT 0,         -- 乐观锁版本            │
+│      created      BIGINT,                   -- 创建时间戳            │
+│      last_modified BIGINT,                  -- 最后修改时间戳         │
+│                                                                     │
+│      INDEX idx_receiver_viewed_created (receiver, viewed, created)  │
+│  );                                                                 │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### 核心代码
+
+**消息实体** (`NotifyMessageLog.java`)：
+
+```java
+@Entity
+@Table(name = "notify_log", indexes = {
+    @Index(columnList = "receiver, viewed, created")
+})
+public class NotifyMessageLog extends Entity {
+
+    @Id
+    @GeneratedValue(generator = "prefixed-id-generator")
+    @GenericGenerator(name = "prefixed-id-generator",
+        parameters = @Parameter(name = "prefix", value = "ntf_"),
+        type = CustomizedIdGenerator.class)
+    private String id;
+
+    @Column(nullable = false)
+    private String type = NotifyType.STRING_MSG.name();
+
+    @Column(nullable = false)
+    private String receiver;
+
+    @Convert(converter = ObjectToJsonConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
+    private Object data;
+
+    private boolean viewed = false;
+
+    // 转换为 WebSocket 消息格式
+    public NotifyMessage convert() {
+        return NotifyMessage.builder()
+            .id(getId())
+            .type(getType())
+            .data(getData())
+            .receiver(getReceiver())
+            .viewed(isViewed())
+            .created(getCreated())  // 继承自 Entity 基类
+            .build();
+    }
+}
+```
+
+**历史消息查询**：
+
+```java
+// 获取用户的历史消息（按创建时间倒序）
+public Page<NotifyMessageLog> getHistoryNotifyByCreated(
+    String userId, long created, PageRequest page) {
+    return repository.findByReceiverAndCreatedLessThanOrderByCreatedDesc(
+        userId, created, page);
+}
+
+// 标记消息已读
+@Transactional
+public void markMessagesAsRead(String userId, List<String> ids) {
+    repository.updateViewedTrueByReceiverAndIdIn(userId, ids);
+    
+    // 推送已读状态变更通知（同步到其他设备）
+    NotifyMessageLog notify = NotifyMessageLog.builder()
+        .type(NotifyType.NOTIFY_VIEWED.name())
+        .data(NotifyType.NotifyUpdateRsp.builder().ids(ids).build())
+        .receiver(userId)
+        .build();
+    publish(notify);  // 不持久化，仅推送
+}
+```
+
+---
+
+## 接入指南
+
+### 场景：订单状态变更通知
+
+以下示例展示如何在你的项目中接入 Quick-Notify，实现订单状态变更的实时推送。
+
+#### Step 1：定义消息类型
+
+```java
+// 1. 定义订单状态消息结构
+@Data
+@Builder
+public class OrderStatusData implements Serializable {
+    private String orderId;
+    private String status;      // PAID, SHIPPED, DELIVERED
+    private String description;
+    private LocalDateTime updateTime;
+}
+
+// 2. 在 NotifyType 中注册新类型
+public enum NotifyType {
+    STRING_MSG(String.class),
+    NOTIFY_VIEWED(NotifyUpdateRsp.class),
+    NOTIFY_DELETED(NotifyUpdateRsp.class),
+    
+    // 新增：订单状态通知
+    ORDER_STATUS(OrderStatusData.class);
+
+    private final Class<?> dataClass;
+    
+    NotifyType(Class<?> dataClass) {
+        this.dataClass = dataClass;
+    }
+
+    public void checkDataType(Object data) {
+        if (data != null && !this.dataClass.isInstance(data)) {
+            throw new IllegalArgumentException("数据类型不匹配: " + this.name());
+        }
+    }
+}
+```
+
+#### Step 2：业务代码发送通知
+
+```java
+@Service
+public class OrderService {
+
+    @Autowired
+    private NotifyManager notifyManager;
+
+    /**
+     * 订单状态变更时发送通知
+     */
+    @Transactional
+    public void updateOrderStatus(String orderId, String userId, String newStatus) {
+        // 1. 更新订单状态（你的业务逻辑）
+        orderRepository.updateStatus(orderId, newStatus);
+        
+        // 2. 构建通知消息
+        OrderStatusData data = OrderStatusData.builder()
+            .orderId(orderId)
+            .status(newStatus)
+            .description(getStatusDescription(newStatus))
+            .updateTime(LocalDateTime.now())
+            .build();
+        
+        NotifyMessageLog message = NotifyMessageLog.builder()
+            .receiver(userId)                      // 接收者用户ID
+            .type(NotifyType.ORDER_STATUS.name())  // 消息类型
+            .data(data)                            // 消息内容
+            .viewed(false)                         // 未读状态
+            .build();
+        
+        // 3. 保存并推送（一行代码搞定）
+        notifyManager.saveAndPublish(message);
+        
+        log.info("订单状态通知已发送, orderId: {}, userId: {}, status: {}", 
+            orderId, userId, newStatus);
+    }
+}
+```
+
+#### Step 3：完整消息流转过程
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ 1. 业务调用                                                          │
+│    orderService.updateOrderStatus("ORD_001", "user_123", "SHIPPED") │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│ 2. NotifyManager.saveAndPublish()                                   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────────┐  │
+│    │ 2.1 类型校验                                                 │  │
+│    │     NotifyType.ORDER_STATUS.checkDataType(OrderStatusData)  │  │
+│    │     ✓ 通过                                                   │  │
+│    └─────────────────────────────────────────────────────────────┘  │
+│                                    │                                │
+│    ┌─────────────────────────────────────────────────────────────┐  │
+│    │ 2.2 持久化到数据库                                            │  │
+│    │     INSERT INTO notify_log VALUES (                         │  │
+│    │       id = 'ntf_1234567890',                                │  │
+│    │       type = 'ORDER_STATUS',                                │  │
+│    │       receiver = 'user_123',                                │  │
+│    │       data = '{"orderId":"ORD_001","status":"SHIPPED",...}',│  │
+│    │       viewed = false,                                       │  │
+│    │       created = 1704067200000                               │  │
+│    │     )                                                       │  │
+│    └─────────────────────────────────────────────────────────────┘  │
+│                                    │                                │
+│    ┌─────────────────────────────────────────────────────────────┐  │
+│    │ 2.3 发布 Spring 事件                                         │  │
+│    │     SpringContextUtil.publishEvent(NotifyMessageEvent)      │  │
+│    └─────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│ 3. StompNotifyEventListener.handler() [异步执行]                     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────────┐  │
+│    │ 3.1 发布到 Redis Topic                                       │  │
+│    │     topic: stomp::ws_notify_topic                           │  │
+│    │     payload: NotifyMessageEvent                             │  │
+│    └─────────────────────────────────────────────────────────────┘  │
+│                                    │                                │
+│                     ┌──────────────┴──────────────┐                 │
+│                     │ Redis Pub/Sub 广播          │                  │
+│                     └──────────────┬──────────────┘                 │
+│              ┌─────────────────────┼─────────────────────┐          │
+│              ▼                     ▼                     ▼          │
+│    ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐  │
+│    │ 节点1 收到事件   │   │ 节点2 收到事件   │   │ 节点N 收到事件   │  │
+│    │ hasSession?     │   │ hasSession?     │   │ hasSession?     │  │
+│    │ ✗ 忽略          │   │ ✓ 有会话        │   │ ✗ 忽略          │  │
+│    └─────────────────┘   └────────┬────────┘   └─────────────────┘  │
+│                                   │                                 │
+└───────────────────────────────────┼─────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│ 4. StompWebSocketHandler.sendMessageWithAck() [节点2执行]            │
+│                                                                     │
+│    用户 user_123 有 2 个在线会话（手机 + 电脑）                          │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────────┐  │
+│    │ 4.1 Session 1 (手机)                                         │  │
+│    │     • 发送消息到 /user/user_123/queue/msg                     │  │
+│    │     • 创建 ACK 记录: ntf_1234567890::sess_mobile             │  │
+│    │     • log: [ACK-REDIS] 消息入队                              │  │
+│    └─────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────────┐  │
+│    │ 4.2 Session 2 (电脑)                                         │  │
+│    │     • 发送消息到 /user/user_123/queue/msg                     │  │
+│    │     • 创建 ACK 记录: ntf_1234567890::sess_desktop            │  │
+│    │     • log: [ACK-REDIS] 消息入队                              │  │
+│    └─────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│ 5. 客户端接收并确认                                                    │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────────┐  │
+│    │ 5.1 手机端收到消息                                            │  │
+│    │     stompClient.subscribe('/user/queue/msg', msg => {       │  │
+│    │       // 收到: {id:'ntf_123..', type:'ORDER_STATUS', ...}   │  │
+│    │       showToast('您的订单已发货');                            │  │
+│    │       stompClient.send('/app/ack', {}, 'ntf_1234567890');   │  │
+│    │     });                                                     │  │
+│    │                                                             │  │
+│    │     服务端: [ACK-REDIS] 确认成功, msgId ntf_123.., sess_mobile│  │
+│    └─────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────────┐  │
+│    │ 5.2 电脑端收到消息                                            │  │
+│    │     // 同样流程...                                           │  │
+│    │                                                             │  │
+│    │     服务端: [ACK-REDIS] 确认成功, msgId ntf_123.., sess_desk  │  │
+│    └─────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│    ✓ 所有 ACK 记录已清理，消息投递完成                                   │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### Step 4：前端处理不同消息类型
+
+```javascript
+stompClient.subscribe('/user/queue/msg', function(message) {
+    const data = JSON.parse(message.body);
+    
+    // 根据消息类型分发处理
+    switch (data.type) {
+        case 'ORDER_STATUS':
+            handleOrderStatus(data.data);
+            break;
+        case 'STRING_MSG':
+            handleStringMessage(data.data);
+            break;
+        case 'NOTIFY_VIEWED':
+            handleViewedSync(data.data.ids);
+            break;
+        default:
+            console.warn('未知消息类型:', data.type);
+    }
+    
+    // 发送 ACK（所有类型都需要）
+    stompClient.send('/app/ack', {}, data.id);
+});
+
+function handleOrderStatus(orderData) {
+    // orderData = { orderId, status, description, updateTime }
+    showNotification({
+        title: '订单状态更新',
+        body: `订单 ${orderData.orderId} ${orderData.description}`,
+        icon: getStatusIcon(orderData.status)
+    });
+    
+    // 更新页面上的订单状态
+    updateOrderUI(orderData.orderId, orderData.status);
+}
+```
+
+---
+
+## API 文档
+
+### REST API
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/vh-stomp-wsend/push_all_obj` | 广播消息 |
+| POST | `/vh-stomp-wsend/push_all_obj/{userId}` | 发送给指定用户 |
+| POST | `/vh-stomp-wsend/cluster/notify/{userId}` | 集群消息（持久化） |
+| GET | `/api/notify/history` | 获取历史消息 |
+| POST | `/api/notify/viewed` | 标记消息已读 |
+| DELETE | `/api/notify/delete` | 删除消息 |
+
+### STOMP 路径
+
+| 路径 | 类型 | 说明 |
+|------|------|------|
+| `/user/queue/msg` | 订阅 | 接收个人消息 |
+| `/topic/messages` | 订阅 | 接收广播消息 |
+| `/app/sendMessage` | 发送 | 发送消息到广播 |
+| `/app/ack` | 发送 | 消息确认 |
+
+### 消息格式
+
+```json
+{
+  "id": "ntf_1234567890",
+  "type": "ORDER_STATUS",
+  "receiver": "user_123",
+  "data": {
+    "orderId": "ORD_001",
+    "status": "SHIPPED",
+    "description": "您的订单已发货",
+    "updateTime": "2024-01-01T12:00:00"
+  },
+  "viewed": false,
+  "created": 1704067200000
+}
+```
+
+---
+
+## 常见问题
+
+### Q: 客户端收到重复消息怎么办？
+
+由于 ACK 重试机制，网络波动时可能收到重复消息。客户端应基于消息 ID 实现幂等处理：
+
+```javascript
+const processedIds = new Set();
+
+function handleMessage(data) {
+    if (processedIds.has(data.id)) {
+        return; // 跳过重复消息
+    }
+    processedIds.add(data.id);
+    // 处理消息...
+}
+```
+
+### Q: 如何扩展消息类型？
+
+参考上面「接入指南」的 Step 1，在 `NotifyType` 枚举中添加新类型即可。
+
+### Q: 消息发送失败如何处理？
+
+`saveAndPublish` 方法是事务性的，如果数据库保存失败会自动回滚。如果需要自定义错误处理：
+
+```java
+try {
+    notifyManager.saveAndPublish(message);
+} catch (Exception e) {
+    log.error("消息发送失败", e);
+    // 记录失败日志或加入重试队列
+}
+```
+
+---
+
+## 许可证
+
+MIT License
+
+---
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
