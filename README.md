@@ -68,7 +68,7 @@ mvn spring-boot:run
 
 ### 3. 打开测试页面
 
-浏览器访问 `src/main/resources/stomp-websocket-sockjs.html`
+浏览器访问 `http://localhost:2025/stomp-websocket-sockjs.html`
 
 ![Demo Screenshot](img.png)
 

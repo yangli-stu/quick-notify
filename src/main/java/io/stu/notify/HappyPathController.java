@@ -13,10 +13,15 @@ import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.support.GenericMessage;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 @Slf4j
 @Profile({"dev"})
@@ -95,5 +100,12 @@ public class HappyPathController {
             .build();
         notifyManager.saveAndPublish(msg);
         return "Message pushed successfully";
+    }
+
+    @ResponseBody
+    @GetMapping("/stomp-websocket-sockjs.html")
+    public String index() throws IOException {
+        return Files.readString(
+            Paths.get("src/main/resources/stomp-websocket-sockjs.html"));
     }
 }
