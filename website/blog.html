@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>博客 - Quick-Notify</title>
+    <meta name="description" content="Quick-Notify 技术博客，深入讲解 WebSocket、STOMP、集群方案等核心技术。">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Markdown 渲染 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* Markdown 文章样式 */
+        .article-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .article-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .article-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        .article-meta {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+        .article-content {
+            line-height: 1.8;
+        }
+        .article-content h1 { font-size: 1.75rem; margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+        .article-content h2 { font-size: 1.5rem; margin: 1.75rem 0 0.875rem; }
+        .article-content h3 { font-size: 1.25rem; margin: 1.5rem 0 0.75rem; }
+        .article-content h4 { font-size: 1.125rem; margin: 1.25rem 0 0.5rem; }
+        .article-content p { margin: 1rem 0; color: var(--text-secondary); }
+        .article-content ul, .article-content ol { margin: 1rem 0; padding-left: 1.5rem; color: var(--text-secondary); }
+        .article-content li { margin: 0.5rem 0; }
+        .article-content code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.875rem;
+            color: #ffa657;
+        }
+        .article-content pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        .article-content pre code {
+            background: none;
+            padding: 0;
+            color: var(--text-primary);
+        }
+        .article-content blockquote {
+            border-left: 4px solid var(--accent);
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .article-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .article-content th, .article-content td {
+            border: 1px solid var(--border);
+            padding: 0.75rem;
+            text-align: left;
+        }
+        .article-content th {
+            background: rgba(255,255,255,0.05);
+        }
+        .article-content a {
+            color: var(--accent);
+        }
+        .article-content img {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+        .back-link:hover {
+            color: var(--accent);
+        }
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-muted);
+        }
+        .error {
+            text-align: center;
+            padding: 4rem;
+            color: var(--error);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="8" fill="#58a6ff"/>
+                <path d="M8 16L14 22L24 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Quick-Notify
+        </a>
+        <ul class="nav-links">
+            <li><a href="/">首页</a></li>
+            <li><a href="/docs">文档</a></li>
+            <li><a href="/architecture">架构</a></li>
+            <li><a href="/blog" class="active">博客</a></li>
+            <li><a href="/about">关于</a></li>
+        </ul>
+        <a href="/demo" class="btn btn-primary nav-cta">在线演示</a>
+    </nav>
+
+    <div style="height: 64px;"></div>
+
+    <!-- 博客列表 -->
+    <div id="blog-list" class="container">
+        <section class="section">
+            <div class="section-header">
+                <h1 class="section-title">技术博客</h1>
+                <p class="section-subtitle">深入讲解 Quick-Notify 的设计理念、原理和最佳实践</p>
+            </div>
+
+            <div class="blog-grid" id="blog-grid">
+                <!-- 动态生成 -->
+            </div>
+        </section>
+    </div>
+
+    <!-- 文章详情 -->
+    <div id="article-view" class="article-container" style="display: none;">
+        <a href="javascript:void(0)" onclick="navigateToBlogList()" class="back-link">← 返回博客列表</a>
+        <div id="article-content">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-bottom">
+            <p>© 2024 Quick-Notify. MIT License.</p>
+        </div>
+    </footer>
+
+    <script>
+        // 博客文章列表数据
+        const blogPosts = [
+            {
+                slug: '01-quick-start-guide',
+                title: '5 分钟快速上手 Quick-Notify',
+                tag: '入门',
+                date: '2026-04-11',
+                excerpt: '手把手教你使用 Quick-Notify Spring Boot Starter，5 分钟快速搭建企业级实时消息推送系统。',
+                color: 'linear-gradient(135deg, #58a6ff 0%, #1f6feb 100%)'
+            },
+            {
+                slug: '02-spring-boot-starter-guide',
+                title: 'Spring Boot Starter 插件化开发实践',
+                tag: '进阶',
+                date: '2026-04-11',
+                excerpt: '深入讲解 Quick-Notify 如何实现 Spring Boot Starter 插件化，以及如何自定义配置和扩展功能。',
+                color: 'linear-gradient(135deg, #3fb950 0%, #1a7f37 100%)'
+            },
+            {
+                slug: '03-websocket-stomp-principle',
+                title: '深入理解 WebSocket STOMP 协议',
+                tag: '原理',
+                date: '2026-04-11',
+                excerpt: '从协议原理讲起，深入分析 STOMP 的工作机制，Spring WebSocket 的实现原理。',
+                color: 'linear-gradient(135deg, #f85149 0%, #b62324 100%)'
+            },
+            {
+                slug: '04-ack-reliability-design',
+                title: '企业级消息推送的 ACK 确认机制',
+                tag: '设计',
+                date: '2026-04-11',
+                excerpt: '深入讲解 Quick-Notify 如何设计 ACK 确认机制，确保消息可靠送达。',
+                color: 'linear-gradient(135deg, #d29922 0%, #9e6a03 100%)'
+            },
+            {
+                slug: '05-redis-cluster-solution',
+                title: '基于 Redis Pub/Sub 的 WebSocket 集群方案',
+                tag: '集群',
+                date: '2026-04-11',
+                excerpt: '深入讲解 Quick-Notify 如何基于 Redis Pub/Sub 实现 WebSocket 集群，支持多节点水平扩展。',
+                color: 'linear-gradient(135deg, #a371f7 0%, #8957e5 100%)'
+            },
+            {
+                slug: '06-multi-device-sync',
+                title: '多设备消息同步与幂等性处理',
+                tag: '同步',
+                date: '2026-04-11',
+                excerpt: '深入讲解 Quick-Notify 如何实现多设备消息同步，以及前端如何处理消息幂等性问题。',
+                color: 'linear-gradient(135deg, #79c0ff 0%, #388bfd 100%)'
+            },
+            {
+                slug: '07-production-deployment',
+                title: '生产环境部署与运维指南',
+                tag: '部署',
+                date: '2026-04-11',
+                excerpt: '详细介绍 Quick-Notify 生产环境部署方案，包括 Docker Compose、Kubernetes、负载均衡配置。',
+                color: 'linear-gradient(135deg, #56d364 0%, #2ea043 100%)'
+            },
+            {
+                slug: '08-security-authentication',
+                title: 'Token 认证与连接安全加固',
+                tag: '安全',
+                date: '2026-04-11',
+                excerpt: '深入讲解 Quick-Notify 的安全机制，包括 Token 认证、连接数限制、跨域配置。',
+                color: 'linear-gradient(135deg, #ff7b72 0%, #da3633 100%)'
+            },
+            {
+                slug: '09-performance-optimization',
+                title: '高并发 WebSocket 推送性能优化',
+                tag: '优化',
+                date: '2026-04-11',
+                excerpt: '深入讲解 Quick-Notify 高并发场景下的性能优化，包括连接数优化、消息压缩、缓存策略。',
+                color: 'linear-gradient(135deg, #ffa657 0%, #db6d28 100%)'
+            },
+            {
+                slug: '10-best-practices',
+                title: '从入门到生产的问题解决汇总',
+                tag: '实践',
+                date: '2026-04-11',
+                excerpt: '汇总 Quick-Notify 实际使用中的常见问题与解决方案，涵盖开发、测试、生产各阶段。',
+                color: 'linear-gradient(135deg, #7ee787 0%, #238636 100%)'
+            }
+        ];
+
+        // 渲染博客列表
+        function renderBlogList() {
+            const grid = document.getElementById('blog-grid');
+            grid.innerHTML = blogPosts.map(post => `
+                <article class="blog-card" onclick="navigateToArticle('${post.slug}')" style="cursor: pointer;">
+                    <div class="blog-image" style="background: ${post.color};"></div>
+                    <div class="blog-content">
+                        <div class="blog-meta">
+                            <span class="blog-tag">${post.tag}</span>
+                            <span>${post.date}</span>
+                        </div>
+                        <h3 class="blog-title">${post.title}</h3>
+                        <p class="blog-excerpt">${post.excerpt}</p>
+                        <span class="btn btn-secondary" style="display: inline-block; margin-top: 0.5rem;">阅读全文 →</span>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        // 导航到文章
+        function navigateToArticle(slug) {
+            history.pushState(null, '', `/blog/${slug}`);
+            loadArticle(slug);
+        }
+
+        // 导航到博客列表
+        function navigateToBlogList() {
+            history.pushState(null, '', `/blog`);
+            document.getElementById('blog-list').style.display = 'block';
+            document.getElementById('article-view').style.display = 'none';
+        }
+
+        // 加载文章
+        async function loadArticle(slug) {
+            const listView = document.getElementById('blog-list');
+            const articleView = document.getElementById('article-view');
+            const content = document.getElementById('article-content');
+
+            listView.style.display = 'none';
+            articleView.style.display = 'block';
+            content.innerHTML = '<div class="loading">加载中...</div>';
+
+            try {
+                const response = await fetch(`blog-articles/${slug}.md`);
+                if (!response.ok) throw new Error('文章加载失败');
+
+                const markdown = await response.text();
+                const post = blogPosts.find(p => p.slug === slug);
+
+                // 去除 frontmatter (---...---)
+                const contentStart = markdown.indexOf('---', 3);
+                const cleanMarkdown = contentStart > 0 ? markdown.substring(contentStart + 3).trim() : markdown;
+
+                // 解析 Markdown
+                const html = marked.parse(cleanMarkdown);
+
+                content.innerHTML = `
+                    <div class="article-header">
+                        <div class="article-meta" style="margin-bottom: 0.5rem;">
+                            <span class="blog-tag">${post.tag}</span>
+                            <span>${post.date}</span>
+                        </div>
+                        <h1 class="article-title">${post.title}</h1>
+                    </div>
+                    <div class="article-content">${html}</div>
+                `;
+
+                // 滚动到顶部
+                window.scrollTo(0, 0);
+
+            } catch (error) {
+                content.innerHTML = `<div class="error">加载失败: ${error.message}</div>`;
+            }
+        }
+
+        // URL 路径处理 - 支持 /blog/slug 格式
+        function handleRoute() {
+            const pathname = window.location.pathname;
+
+            // 匹配 /blog/slug 路径格式（但不处理 .html 结尾的路径）
+            if (pathname.startsWith('/blog/') && !pathname.endsWith('.html')) {
+                const slug = pathname.substring(6); // 去掉 '/blog/' 前缀
+                if (slug) {
+                    loadArticle(slug);
+                    return;
+                }
+            }
+
+            // 兼容 ?article=slug 格式
+            const params = new URLSearchParams(window.location.search);
+            const slug = params.get('article');
+
+            if (slug) {
+                loadArticle(slug);
+            } else {
+                renderBlogList();
+            }
+        }
+
+        // 页面加载
+        handleRoute();
+    </script>
+</body>
+</html>

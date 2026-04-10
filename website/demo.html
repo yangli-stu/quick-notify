@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线演示 - Quick-Notify</title>
+    <meta name="description" content="Quick-Notify 在线演示，体验实时消息推送功能。">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/lib/stomp.umd.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="8" fill="#58a6ff"/>
+                <path d="M8 16L14 22L24 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Quick-Notify
+        </a>
+        <ul class="nav-links">
+            <li><a href="/">首页</a></li>
+            <li><a href="/docs">文档</a></li>
+            <li><a href="/architecture">架构</a></li>
+            <li><a href="/blog">博客</a></li>
+            <li><a href="/about">关于</a></li>
+        </ul>
+        <a href="/demo" class="btn btn-primary nav-cta active">在线演示</a>
+    </nav>
+
+    <div style="height: 64px;"></div>
+
+    <div class="demo-container">
+        <div class="section-header" style="margin-bottom: 2rem;">
+            <h1 class="section-title">在线演示</h1>
+            <p class="section-subtitle">体验 Quick-Notify 实时消息推送功能</p>
+        </div>
+
+        <!-- Connection Panel -->
+        <div class="demo-panel">
+            <div class="demo-header">
+                <span class="demo-title">1. 连接设置</span>
+                <span id="connectionStatus" style="color: var(--text-muted);">未连接</span>
+            </div>
+            <div class="demo-body">
+                <div class="demo-controls">
+                    <input type="text" id="userId" placeholder="输入用户 ID (如: test1)" value="test1">
+                    <input type="text" id="serverUrl" placeholder="服务器地址" value="http://localhost:2025/stomp-ws" style="max-width: 300px;">
+                    <button id="connectBtn" class="btn btn-primary" onclick="connect()">连接</button>
+                    <button id="disconnectBtn" class="btn btn-secondary" onclick="disconnect()" disabled>断开</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Send Message Panel -->
+        <div class="demo-panel">
+            <div class="demo-header">
+                <span class="demo-title">2. 发送消息</span>
+            </div>
+            <div class="demo-body">
+                <div class="demo-controls">
+                    <input type="text" id="receiverId" placeholder="接收者 ID" value="test1">
+                    <input type="text" id="messageContent" placeholder="消息内容">
+                    <button id="sendBtn" class="btn btn-primary" onclick="sendMessage()" disabled>发送</button>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <button class="btn btn-secondary" onclick="sendBroadcast()" disabled id="broadcastBtn">
+                        广播消息
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Panel -->
+        <div class="demo-panel">
+            <div class="demo-header">
+                <span class="demo-title">3. 消息记录</span>
+                <button class="btn btn-secondary" onclick="clearMessages()" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">清空</button>
+            </div>
+            <div class="demo-body">
+                <div id="messages" class="demo-messages">
+                    <div style="color: var(--text-muted); text-align: center; padding: 2rem;">
+                        连接后消息将显示在这里
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Test Panel -->
+        <div class="demo-panel">
+            <div class="demo-header">
+                <span class="demo-title">4. API 测试</span>
+            </div>
+            <div class="demo-body">
+                <div class="demo-controls">
+                    <input type="text" id="apiUserId" placeholder="用户 ID" value="test1">
+                    <input type="text" id="apiMessage" placeholder="消息内容" value="Hello from API!">
+                    <button class="btn btn-secondary" onclick="testPushApi()">POST /push_all_obj/{userId}</button>
+                    <button class="btn btn-secondary" onclick="testBroadcastApi()">POST /push_all_obj (广播)</button>
+                </div>
+                <div id="apiResult" style="margin-top: 1rem; padding: 1rem; background: var(--code-bg); border-radius: 6px; font-family: 'Fira Code', monospace; font-size: 0.875rem; display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Log Panel -->
+        <div class="demo-panel">
+            <div class="demo-header">
+                <span class="demo-title">5. 连接日志</span>
+            </div>
+            <div class="demo-body">
+                <div id="log" style="height: 200px; overflow-y: auto; background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; font-family: 'Fira Code', monospace; font-size: 0.75rem; color: var(--text-secondary);"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stompClient = null;
+        let currentUserId = null;
+
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'var(--error)' : type === 'success' ? 'var(--success)' : 'var(--text-secondary)';
+            logEl.innerHTML += `<div style="color: ${color};">[${time}] ${message}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function addMessage(content, type, time = null) {
+            const msgEl = document.getElementById('messages');
+            if (msgEl.querySelector('div[style]')) {
+                msgEl.innerHTML = '';
+            }
+            const t = time || new Date().toLocaleTimeString();
+            msgEl.innerHTML += `<div class="message ${type}"><span class="time">${t}</span> ${content}</div>`;
+            msgEl.scrollTop = msgEl.scrollHeight;
+        }
+
+        function connect() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const userId = document.getElementById('userId').value;
+
+            if (!userId) {
+                alert('请输入用户 ID');
+                return;
+            }
+
+            currentUserId = userId;
+
+            log(`Connecting to ${serverUrl} as ${userId}...`);
+
+            const socket = new SockJS(serverUrl);
+            stompClient = Stomp.over(socket);
+
+            stompClient.debug = function(str) {
+                // 禁用 STOMP 调试日志
+            };
+
+            stompClient.connect(
+                { Authorization: `test${userId}` },
+                function(frame) {
+                    log(`Connected as ${userId}`, 'success');
+                    document.getElementById('connectionStatus').textContent = '已连接';
+                    document.getElementById('connectionStatus').style.color = 'var(--success)';
+                    document.getElementById('connectBtn').disabled = true;
+                    document.getElementById('disconnectBtn').disabled = false;
+                    document.getElementById('sendBtn').disabled = false;
+                    document.getElementById('broadcastBtn').disabled = false;
+
+                    // 订阅个人消息
+                    stompClient.subscribe('/user/queue/msg', function(message) {
+                        const data = JSON.parse(message.body);
+                        addMessage(`<strong>收到消息</strong>: ${JSON.stringify(data, null, 2)}`, 'received');
+
+                        // 发送 ACK
+                        if (data.id) {
+                            stompClient.send('/app/ack', {}, data.id);
+                            log(`ACK sent for ${data.id}`, 'success');
+                        }
+                    });
+
+                    // 订阅广播消息
+                    stompClient.subscribe('/topic/messages', function(message) {
+                        const data = JSON.parse(message.body);
+                        addMessage(`<strong>广播消息</strong>: ${JSON.stringify(data, null, 2)}`, 'received');
+                    });
+
+                    // 订阅 ACK 确认
+                    stompClient.subscribe('/topic/ack', function(message) {
+                        const data = message.body;
+                        addMessage(`<strong>ACK 确认</strong>: ${data}`, 'sent');
+                    });
+
+                    addMessage(`已订阅 /user/queue/msg`, 'sent');
+                },
+                function(error) {
+                    log(`Connection error: ${error}`, 'error');
+                    document.getElementById('connectionStatus').textContent = '连接失败';
+                    document.getElementById('connectionStatus').style.color = 'var(--error)';
+                }
+            );
+
+            socket.onclose = function() {
+                log('Connection closed', 'error');
+                document.getElementById('connectionStatus').textContent = '已断开';
+                document.getElementById('connectionStatus').style.color = 'var(--text-muted)';
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+                document.getElementById('sendBtn').disabled = true;
+                document.getElementById('broadcastBtn').disabled = true;
+            };
+        }
+
+        function disconnect() {
+            if (stompClient) {
+                stompClient.disconnect();
+                stompClient = null;
+                log('Disconnected');
+            }
+        }
+
+        function sendMessage() {
+            if (!stompClient) {
+                alert('请先连接');
+                return;
+            }
+
+            const receiver = document.getElementById('receiverId').value;
+            const content = document.getElementById('messageContent').value;
+
+            if (!content) {
+                alert('请输入消息内容');
+                return;
+            }
+
+            const message = {
+                receiver: receiver,
+                type: 'STRING_MSG',
+                data: content
+            };
+
+            // 通过 REST API 发送
+            const serverUrl = document.getElementById('serverUrl').value.replace('/stomp-ws', '');
+            fetch(`${serverUrl}/vh-stomp-wsend/push_all_obj/${receiver}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: content
+            })
+            .then(res => {
+                if (res.ok) {
+                    addMessage(`<strong>发送成功</strong> to ${receiver}: ${content}`, 'sent');
+                    log(`Message sent to ${receiver}: ${content}`, 'success');
+                } else {
+                    addMessage(`<strong>发送失败</strong>: ${res.status}`, 'received');
+                }
+            })
+            .catch(err => {
+                addMessage(`<strong>发送失败</strong>: ${err.message}`, 'received');
+                log(`Send error: ${err.message}`, 'error');
+            });
+
+            document.getElementById('messageContent').value = '';
+        }
+
+        function sendBroadcast() {
+            if (!stompClient) {
+                alert('请先连接');
+                return;
+            }
+
+            const content = document.getElementById('messageContent').value || 'Broadcast message';
+
+            const serverUrl = document.getElementById('serverUrl').value.replace('/stomp-ws', '');
+            fetch(`${serverUrl}/vh-stomp-wsend/push_all_obj`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: content
+            })
+            .then(res => {
+                if (res.ok) {
+                    addMessage(`<strong>广播成功</strong>: ${content}`, 'sent');
+                    log(`Broadcast sent: ${content}`, 'success');
+                }
+            })
+            .catch(err => {
+                log(`Broadcast error: ${err.message}`, 'error');
+            });
+        }
+
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 2rem;">消息已清空</div>';
+        }
+
+        function testPushApi() {
+            const serverUrl = document.getElementById('serverUrl').value.replace('/stomp-ws', '');
+            const userId = document.getElementById('apiUserId').value;
+            const message = document.getElementById('apiMessage').value;
+
+            const resultEl = document.getElementById('apiResult');
+            resultEl.style.display = 'block';
+            resultEl.textContent = `Sending request to ${serverUrl}/vh-stomp-wsend/push_all_obj/${userId}...`;
+
+            fetch(`${serverUrl}/vh-stomp-wsend/push_all_obj/${userId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: message
+            })
+            .then(res => res.text())
+            .then(data => {
+                resultEl.textContent = `Response: ${data}`;
+                resultEl.style.color = 'var(--success)';
+            })
+            .catch(err => {
+                resultEl.textContent = `Error: ${err.message}`;
+                resultEl.style.color = 'var(--error)';
+            });
+        }
+
+        function testBroadcastApi() {
+            const serverUrl = document.getElementById('serverUrl').value.replace('/stomp-ws', '');
+            const message = document.getElementById('apiMessage').value;
+
+            const resultEl = document.getElementById('apiResult');
+            resultEl.style.display = 'block';
+            resultEl.textContent = `Sending broadcast to ${serverUrl}/vh-stomp-wsend/push_all_obj...`;
+
+            fetch(`${serverUrl}/vh-stomp-wsend/push_all_obj`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: message
+            })
+            .then(res => res.text())
+            .then(data => {
+                resultEl.textContent = `Response: ${data}`;
+                resultEl.style.color = 'var(--success)';
+            })
+            .catch(err => {
+                resultEl.textContent = `Error: ${err.message}`;
+                resultEl.style.color = 'var(--error)';
+            });
+        }
+
+        // 自动连接（可选）
+        // window.onload = connect;
+    </script>
+
+    <!-- Footer -->
+    <footer class="footer" style="margin-top: 4rem;">
+        <div class="footer-bottom">
+            <p>© 2024 Quick-Notify. MIT License.</p>
+        </div>
+    </footer>
+</body>
+</html>
