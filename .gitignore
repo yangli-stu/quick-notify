@@ -37,3 +37,5 @@ build/
 src/test/resources/language/
 .env
 .cursor/
+
+SDK_PLAN.md

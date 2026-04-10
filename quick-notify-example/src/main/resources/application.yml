@@ -1,0 +1,40 @@
+server:
+  port: 2025
+
+spring:
+  main:
+    allow-circular-references: true
+  application:
+    name: quick-notify-example
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:quicknotify;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+  h2:
+    console:
+      enabled: true
+
+# Redisson 配置 (使用本地文件存储)
+redisson:
+  single-server-config:
+    address: redis://127.0.0.1:6379
+
+# WebSocket & STOMP 日志
+logging:
+  level:
+    root: INFO
+    io.stu: DEBUG
+    org.springframework.web.socket: DEBUG
+    org.springframework.messaging: DEBUG
+    org.springframework.web.socket.messaging: DEBUG
+    org.springframework.web.socket.server: DEBUG
+    org.springframework.web.socket.server.standard: DEBUG

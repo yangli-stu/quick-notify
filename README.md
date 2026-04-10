@@ -26,7 +26,7 @@
 | **消息确认 (ACK)** | 自动重试机制，确保消息可靠送达 |
 | **集群支持** | 基于 Redis Pub/Sub，支持多节点水平扩展 |
 | **消息持久化** | 支持历史消息存储与查询 |
-| **开箱即用** | 完整的前后端示例，5 分钟快速上手 |
+| **Starter 模式** | 零配置接入，只需添加依赖即可启用 |
 
 ---
 
@@ -58,21 +58,32 @@
 docker run -d --name redis -p 6379:6379 redis
 ```
 
-### 2. 克隆并运行
+### 2. 快速接入
+
+在你的项目中添加依赖：
+
+```xml
+<dependency>
+    <groupId>io.stu</groupId>
+    <artifactId>quick-notify-spring-boot-starter</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</dependency>
+```
+
+### 3. 运行示例
 
 ```bash
-git clone https://github.com/your-repo/quick-notify.git
-cd quick-notify
+cd quick-notify-example
 mvn spring-boot:run
 ```
 
-### 3. 打开测试页面
+### 4. 打开测试页面
 
 浏览器访问 `http://localhost:2025/stomp-websocket-sockjs.html`
 
 ![Demo Screenshot](img.png)
 
-### 4. 发送测试消息(模拟服务器推送消息)
+### 5. 发送测试消息(模拟服务器推送消息)
 
 ```bash
 # 发送给指定用户
