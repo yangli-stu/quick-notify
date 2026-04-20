@@ -7,6 +7,6 @@ COPY . /usr/share/nginx/html
 # 复制自定义 Nginx 配置
 COPY nginx.conf /etc/nginx/nginx.conf
 
-EXPOSE ${PORT:-8501}
+EXPOSE 8080
 
 CMD ["nginx", "-g", "daemon off;"]
