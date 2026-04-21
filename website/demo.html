@@ -7,18 +7,32 @@
     <meta name="description" content="Quick-Notify 在线演示，体验实时消息推送功能。">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/lib/stomp.umd.min.js"></script>
+    <script src="/js/sockjs.min.js"></script>
+    <script src="/js/stomp.umd.min.js"></script>
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar">
         <a href="/" class="nav-brand">
-            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="32" height="32" rx="8" fill="#58a6ff"/>
-                <path d="M8 16L14 22L24 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#6366f1"/>
+                        <stop offset="50%" stop-color="#8b5cf6"/>
+                        <stop offset="100%" stop-color="#22d3ee"/>
+                    </linearGradient>
+                    <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#22d3ee"/>
+                        <stop offset="100%" stop-color="#6366f1"/>
+                    </linearGradient>
+                </defs>
+                <rect width="40" height="40" rx="12" fill="url(#logoGrad)"/>
+                <path d="M20 8C20 8 12 10 12 18C12 20 13 22 14 23V26C14 27 14 28 15 28H25C26 28 26 27 26 26V23C27 22 28 20 28 18C28 10 20 8 20 8Z" fill="white" fill-opacity="0.95"/>
+                <circle cx="26" cy="14" r="5" fill="#f85149"/>
+                <circle cx="26" cy="14" r="2.5" fill="white"/>
+                <path d="M19 16L17 22H21L19 28" stroke="url(#logoGrad2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             Quick-Notify
         </a>

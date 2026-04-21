@@ -14,7 +14,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.11-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Java](https://img.shields.io/badge/Java-21-brightgreen.svg)](https://www.oracle.com/java/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/your-repo/quick-notify?style=social)](https://github.com/your-repo/quick-notify)
+[![Stars](https://img.shields.io/github/stars/your-repo/quick-notify?style=social)](https://github.com/yangli-stu/quick-notify)
 
 > 基于 **Spring Boot 3 + WebSocket STOMP + Redis** 的企业级实时消息推送系统
 > 支持集群部署、消息 ACK 确认、消息持久化，已在**万级日活生产环境**验证
@@ -319,7 +319,7 @@ quick-notify/
 
 ```bash
 # 克隆项目
-git clone https://github.com/your-repo/quick-notify.git
+git clone https://github.com/yangli-stu/quick-notify.git
 cd quick-notify
 
 # 运行示例
@@ -370,7 +370,7 @@ curl -X POST -d "Hello World" http://localhost:2025/vh-stomp-wsend/push_all_obj/
 ## 🔗 链接
 
 - 📘 [项目文档](https://your-docs-url.com)
-- 💾 [GitHub 仓库](https://github.com/your-repo/quick-notify)
+- 💾 [GitHub 仓库](https://github.com/yangli-stu/quick-notify)
 - 📦 [Maven 中央仓库](https://search.maven.org/)
 
 ---

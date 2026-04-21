@@ -92,7 +92,7 @@ start_docker() {
     log_info "启动容器..."
     docker run -d \
         --name "$CONTAINER_NAME" \
-        -p "$PORT:8501" \
+        -p "$PORT:8080" \
         --restart unless-stopped \
         "$IMAGE_NAME:latest"
 

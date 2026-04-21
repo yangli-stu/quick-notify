@@ -319,7 +319,7 @@ docker run -d --name redis -p 6379:6379 redis
 - ✅ **ACK 消息确认**
 - ✅ **消息持久化**
 
-完整源码请参考 [quick-notify-example](https://github.com/your-repo/quick-notify/tree/main/quick-notify-example) 模块。
+完整源码请参考 [quick-notify-example](https://github.com/yangli-stu/quick-notify/tree/main/quick-notify-example) 模块。
 
 ---
 

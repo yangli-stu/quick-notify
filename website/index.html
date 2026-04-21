@@ -3,20 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quick-Notify - 企业级实时消息推送系统</title>
-    <meta name="description" content="基于 Spring Boot 3 + WebSocket STOMP + Redis 的企业级实时消息推送系统，支持集群部署、消息 ACK 确认、万级日活验证。">
+    <title>Quick-Notify — 企业级实时消息推送系统</title>
+    <meta name="description" content="基于 Spring Boot 3 + WebSocket STOMP + Redis 构建的企业级实时消息推送系统，支持集群部署、毫秒级送达、万级日活验证。">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Animated Background -->
+    <div class="bg-gradient-orb orb-1"></div>
+    <div class="bg-gradient-orb orb-2"></div>
+    <div class="bg-gradient-orb orb-3"></div>
+
     <!-- Navigation -->
     <nav class="navbar">
         <a href="/" class="nav-brand">
-            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="32" height="32" rx="8" fill="#58a6ff"/>
-                <path d="M8 16L14 22L24 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#6366f1"/>
+                        <stop offset="50%" stop-color="#8b5cf6"/>
+                        <stop offset="100%" stop-color="#22d3ee"/>
+                    </linearGradient>
+                    <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#22d3ee"/>
+                        <stop offset="100%" stop-color="#6366f1"/>
+                    </linearGradient>
+                </defs>
+                <!-- Background shape -->
+                <rect width="40" height="40" rx="12" fill="url(#logoGrad)"/>
+                <!-- Stylized bell + lightning bolt -->
+                <path d="M20 8C20 8 12 10 12 18C12 20 13 22 14 23V26C14 27 14 28 15 28H25C26 28 26 27 26 26V23C27 22 28 20 28 18C28 10 20 8 20 8Z" fill="white" fill-opacity="0.95"/>
+                <!-- Notification dot -->
+                <circle cx="26" cy="14" r="5" fill="#f85149"/>
+                <circle cx="26" cy="14" r="2.5" fill="white"/>
+                <!-- Lightning accent -->
+                <path d="M19 16L17 22H21L19 28" stroke="url(#logoGrad2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             Quick-Notify
         </a>
@@ -27,35 +50,37 @@
             <li><a href="/blog">博客</a></li>
             <li><a href="/about">关于</a></li>
         </ul>
-        <a href="/demo" class="btn btn-primary nav-cta">在线演示</a>
+        <a href="/demo" class="nav-cta">在线演示</a>
     </nav>
 
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-badge">
-            <svg viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM5.78 8.75a.75.75 0 0 0 1.284.53l3.5-3.5a.75.75 0 0 0 0-1.06l-3.5-3.5a.75.75 0 0 0-1.06 1.06l2.47 2.47H2.75a.75.75 0 0 0 0 1.5h5.72l-2.47 2.47a.75.75 0 0 0 .53 1.28Z"/>
-            </svg>
+            <span class="dot"></span>
             已通过万级日活生产验证
         </div>
 
-        <h1 class="hero-title">企业级实时消息推送系统</h1>
+        <h1 class="hero-title">
+            <span class="line">企业级</span>
+            <span class="line gradient">实时消息推送</span>
+        </h1>
 
         <p class="hero-subtitle">
             基于 Spring Boot 3 + WebSocket STOMP + Redis 构建<br>
-            支持集群部署、消息 ACK 确认、毫秒级实时送达
+            毫秒级送达 · ACK 确认 · 集群水平扩展
         </p>
 
         <div class="hero-buttons">
             <a href="/docs" class="btn btn-primary">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M10 0a10 10 0 1 0 10 10A10 10 0 0 0 10 0Zm4.78 8.78l-3 2.91a.75.75 0 0 1-1.1-.01l-1.63-1.63a.75.75 0 0 1-.01-1.06l3-3a.75.75 0 0 1 1.06 1.06l-2.47 2.47h5.72a.75.75 0 0 1 0 1.5h-5.72l2.47 2.47a.75.75 0 0 1-1.06 1.06Z"/>
                 </svg>
                 快速开始
             </a>
             <a href="/architecture" class="btn btn-secondary">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M6.75 3.5a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h6.5a.75.75 0 0 0 .75-.75V4.25a.75.75 0 0 0-.75-.75h-6.5ZM5 9.75a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75ZM5 13.75a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75Z"/>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="14" height="14" rx="2"/>
+                    <path d="M7 7h6M7 10h6M7 13h4"/>
                 </svg>
                 了解架构
             </a>
@@ -67,24 +92,25 @@
                 <div class="stat-label">消息延迟 P99</div>
             </div>
             <div class="stat">
-                <div class="stat-value">10,000+</div>
-                <div class="stat-label">单机并发连接</div>
+                <div class="stat-value">10K+</div>
+                <div class="stat-label">单机并发</div>
             </div>
             <div class="stat">
-                <div class="stat-value">5,000+</div>
-                <div class="stat-label">消息/秒吞吐</div>
+                <div class="stat-value">5K/s</div>
+                <div class="stat-label">消息吞吐</div>
             </div>
         </div>
     </section>
 
     <!-- Features Section -->
     <section class="section">
-        <div class="section-header">
+        <div class="section-header reveal">
+            <span class="section-label">核心特性</span>
             <h2 class="section-title">为什么选择 Quick-Notify？</h2>
             <p class="section-subtitle">开箱即用的企业级解决方案，让实时消息推送变得简单</p>
         </div>
 
-        <div class="features-grid">
+        <div class="features-grid stagger-children">
             <div class="feature-card">
                 <div class="feature-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -154,79 +180,73 @@
     </section>
 
     <!-- Quick Start Section -->
-    <section class="section" style="background: var(--secondary);">
-        <div class="section-header">
-            <h2 class="section-title">快速开始</h2>
-            <p class="section-subtitle">只需三步，即可在你的项目中启用实时消息推送</p>
+    <section class="section quick-start">
+        <div class="section-header reveal">
+            <span class="section-label">快速开始</span>
+            <h2 class="section-title">三步接入实时推送</h2>
+            <p class="section-subtitle">只需添加依赖、调用 API、前端订阅，即可完成接入</p>
         </div>
 
-        <div class="features-grid" style="max-width: 1000px;">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                    </svg>
-                </div>
-                <h3 class="feature-title">1. 添加依赖</h3>
+        <div class="quick-start-grid stagger-children">
+            <div class="quick-start-card">
+                <span class="step-number">1</span>
+                <h3 class="feature-title">添加依赖</h3>
+                <p class="feature-desc">在 pom.xml 中添加 Starter 依赖</p>
                 <div class="code-block">
                     <div class="code-header">
+                        <div class="code-dots"><span></span><span></span><span></span></div>
                         <span class="code-lang">XML</span>
                     </div>
                     <div class="code-content">
-                        <pre><code><span class="tag">&lt;dependency&gt;</span>
+<pre><code><span class="tag">&lt;dependency&gt;</span>
   <span class="tag">&lt;groupId&gt;</span>io.stu<span class="tag">&lt;/groupId&gt;</span>
-  <span class="tag">&lt;artifactId&gt;</span>quick-notify-spring-boot-starter<span class="tag">&lt;/artifactId&gt;</span>
-  <span class="tag">&lt;version&gt;</span>0.0.1-SNAPSHOT<span class="tag">&lt;/version&gt;</span>
+  <span class="tag">&lt;artifactId&gt;</span>quick-notify<span class="tag">&lt;/artifactId&gt;</span>
+  <span class="tag">&lt;version&gt;</span>0.0.1<span class="tag">&lt;/version&gt;</span>
 <span class="tag">&lt;/dependency&gt;</span></code></pre>
                     </div>
                 </div>
             </div>
 
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="16 18 22 12 16 6"/>
-                        <polyline points="8 6 2 12 8 18"/>
-                    </svg>
-                </div>
-                <h3 class="feature-title">2. 发送消息</h3>
+            <div class="quick-start-card">
+                <span class="step-number">2</span>
+                <h3 class="feature-title">发送消息</h3>
+                <p class="feature-desc">调用 NotifyManager 发送消息</p>
                 <div class="code-block">
                     <div class="code-header">
+                        <div class="code-dots"><span></span><span></span><span></span></div>
                         <span class="code-lang">Java</span>
                     </div>
                     <div class="code-content">
-                        <pre><code><span class="keyword">@Autowired</span>
-<span class="keyword">private</span> NotifyManager notifyManager;
+<pre><code><span class="keyword">@Autowired</span>
+<span class="keyword">private</span> NotifyManager manager;
 
-notifyManager.saveAndPublish(
-    NotifyMessageLog.builder()
-        .receiver(<span class="string">"user123"</span>)
-        .type(<span class="string">"ORDER_STATUS"</span>)
-        .data(orderData)
-        .build()
+manager.saveAndPublish(
+  <span class="function">NotifyMessageLog</span>.builder()
+    .receiver(<span class="string">"user123"</span>)
+    .type(<span class="string">"ORDER_STATUS"</span>)
+    .data(orderData)
+    .build()
 );</code></pre>
                     </div>
                 </div>
             </div>
 
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 0 1 9-9"/>
-                    </svg>
-                </div>
-                <h3 class="feature-title">3. 前端订阅</h3>
+            <div class="quick-start-card">
+                <span class="step-number">3</span>
+                <h3 class="feature-title">前端订阅</h3>
+                <p class="feature-desc">通过 STOMP 协议订阅消息</p>
                 <div class="code-block">
                     <div class="code-header">
+                        <div class="code-dots"><span></span><span></span><span></span></div>
                         <span class="code-lang">JavaScript</span>
                     </div>
                     <div class="code-content">
-                        <pre><code>stompClient.subscribe(
-    <span class="string">'/user/queue/msg'</span>,
-    (msg) => {
-        <span class="keyword">const</span> data = JSON.parse(msg.body);
-        stompClient.send(<span class="string">'/app/ack'</span>, {}, data.id);
-    }
+<pre><code>stompClient.subscribe(
+  <span class="string">'/user/queue/msg'</span>,
+  (msg) => {
+    <span class="keyword">const</span> data = JSON.parse(msg.body);
+    stompClient.send(<span class="string">'/app/ack'</span>, {}, data.id);
+  }
 );</code></pre>
                     </div>
                 </div>
@@ -234,97 +254,149 @@ notifyManager.saveAndPublish(
         </div>
     </section>
 
-    <!-- Architecture Preview -->
+    <!-- Architecture Section -->
     <section class="section">
-        <div class="section-header">
-            <h2 class="section-title">系统架构</h2>
-            <p class="section-subtitle">清晰的模块设计，支撑企业级生产环境</p>
+        <div class="section-header reveal">
+            <span class="section-label">系统架构</span>
+            <h2 class="section-title">清晰的模块设计</h2>
+            <p class="section-subtitle">支撑企业级生产环境，集群水平扩展</p>
         </div>
 
-        <div class="arch-diagram">
-            <svg viewBox="0 0 800 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <div class="arch-diagram reveal">
+            <svg viewBox="0 0 900 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="nodeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#1a1f35"/>
+                        <stop offset="100%" stop-color="#0f1322"/>
+                    </linearGradient>
+                    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#6366f1"/>
+                        <stop offset="100%" stop-color="#22d3ee"/>
+                    </linearGradient>
+                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="4" result="blur"/>
+                        <feMerge>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+
                 <!-- Client -->
-                <rect x="50" y="160" width="120" height="80" rx="8" fill="#21262d" stroke="#58a6ff" stroke-width="2"/>
-                <text x="110" y="190" text-anchor="middle" fill="#c9d1d9" font-size="12">客户端</text>
-                <text x="110" y="210" text-anchor="middle" fill="#8b949e" font-size="10">浏览器 / App</text>
+                <g filter="url(#glow)">
+                    <rect x="40" y="170" width="120" height="80" rx="12" fill="#0f1322" stroke="#6366f1" stroke-width="2"/>
+                    <text x="100" y="205" text-anchor="middle" fill="#f1f5f9" font-family="Outfit" font-size="13" font-weight="600">客户端</text>
+                    <text x="100" y="225" text-anchor="middle" fill="#64748b" font-family="DM Sans" font-size="10">浏览器 / App</text>
+                </g>
 
-                <!-- SockJS -->
-                <rect x="220" y="160" width="120" height="80" rx="8" fill="#21262d" stroke="#30363d" stroke-width="2"/>
-                <text x="280" y="190" text-anchor="middle" fill="#c9d1d9" font-size="12">SockJS</text>
-                <text x="280" y="210" text-anchor="middle" fill="#8b949e" font-size="10">WebSocket 兼容</text>
+                <!-- SockJS Gateway -->
+                <g filter="url(#glow)">
+                    <rect x="200" y="170" width="130" height="80" rx="12" fill="#0f1322" stroke="#30363d" stroke-width="2"/>
+                    <text x="265" y="205" text-anchor="middle" fill="#f1f5f9" font-family="Outfit" font-size="13" font-weight="600">SockJS</text>
+                    <text x="265" y="225" text-anchor="middle" fill="#64748b" font-family="DM Sans" font-size="10">WebSocket 兼容层</text>
+                </g>
 
-                <!-- Server Cluster -->
-                <rect x="390" y="60" width="360" height="200" rx="8" fill="#21262d" stroke="#30363d" stroke-width="2" stroke-dasharray="4"/>
-                <text x="570" y="85" text-anchor="middle" fill="#58a6ff" font-size="12">服务端集群</text>
+                <!-- Server Cluster Border -->
+                <rect x="370" y="60" width="480" height="220" rx="16" fill="none" stroke="#30363d" stroke-width="2" stroke-dasharray="8 4"/>
+
+                <!-- Cluster Label -->
+                <text x="610" y="85" text-anchor="middle" fill="#6366f1" font-family="Outfit" font-size="12" font-weight="600" letter-spacing="0.1em">服务端集群</text>
 
                 <!-- Node 1 -->
-                <rect x="410" y="100" width="150" height="140" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1"/>
-                <text x="485" y="125" text-anchor="middle" fill="#c9d1d9" font-size="11">节点 1</text>
-                <rect x="420" y="135" width="130" height="25" rx="4" fill="#0d1117" stroke="#30363d"/>
-                <text x="485" y="152" text-anchor="middle" fill="#8b949e" font-size="9">WebSocket Handler</text>
-                <rect x="420" y="165" width="130" height="25" rx="4" fill="#0d1117" stroke="#30363d"/>
-                <text x="485" y="182" text-anchor="middle" fill="#8b949e" font-size="9">ACK Handler</text>
-                <rect x="420" y="195" width="130" height="25" rx="4" fill="#0d1117" stroke="#30363d"/>
-                <text x="485" y="212" text-anchor="middle" fill="#8b949e" font-size="9">Event Listener</text>
+                <g>
+                    <rect x="390" y="100" width="160" height="160" rx="12" fill="url(#nodeGrad)" stroke="#6366f1" stroke-width="2"/>
+                    <text x="470" y="125" text-anchor="middle" fill="#f1f5f9" font-family="Outfit" font-size="12" font-weight="600">节点 1</text>
+
+                    <rect x="405" y="140" width="130" height="28" rx="6" fill="#0a0e17" stroke="#30363d"/>
+                    <text x="470" y="158" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="9">WebSocket Handler</text>
+
+                    <rect x="405" y="175" width="130" height="28" rx="6" fill="#0a0e17" stroke="#30363d"/>
+                    <text x="470" y="193" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="9">ACK Handler</text>
+
+                    <rect x="405" y="210" width="130" height="28" rx="6" fill="#0a0e17" stroke="#30363d"/>
+                    <text x="470" y="228" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="9">Event Listener</text>
+                </g>
 
                 <!-- Node 2 -->
-                <rect x="590" y="100" width="150" height="140" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
-                <text x="665" y="125" text-anchor="middle" fill="#c9d1d9" font-size="11">节点 2</text>
-                <rect x="600" y="135" width="130" height="25" rx="4" fill="#0d1117" stroke="#30363d"/>
-                <text x="665" y="152" text-anchor="middle" fill="#8b949e" font-size="9">WebSocket Handler</text>
-                <rect x="600" y="165" width="130" height="25" rx="4" fill="#0d1117" stroke="#30363d"/>
-                <text x="665" y="182" text-anchor="middle" fill="#8b949e" font-size="9">ACK Handler</text>
-                <rect x="600" y="195" width="130" height="25" rx="4" fill="#0d1117" stroke="#30363d"/>
-                <text x="665" y="212" text-anchor="middle" fill="#8b949e" font-size="9">Event Listener</text>
+                <g>
+                    <rect x="570" y="100" width="160" height="160" rx="12" fill="url(#nodeGrad)" stroke="#30363d" stroke-width="1.5"/>
+                    <text x="650" y="125" text-anchor="middle" fill="#f1f5f9" font-family="Outfit" font-size="12" font-weight="600">节点 2</text>
+
+                    <rect x="585" y="140" width="130" height="28" rx="6" fill="#0a0e17" stroke="#30363d"/>
+                    <text x="650" y="158" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="9">WebSocket Handler</text>
+
+                    <rect x="585" y="175" width="130" height="28" rx="6" fill="#0a0e17" stroke="#30363d"/>
+                    <text x="650" y="193" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="9">ACK Handler</text>
+
+                    <rect x="585" y="210" width="130" height="28" rx="6" fill="#0a0e17" stroke="#30363d"/>
+                    <text x="650" y="228" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="9">Event Listener</text>
+                </g>
 
                 <!-- Redis -->
-                <ellipse cx="570" cy="320" rx="100" ry="40" fill="#21262d" stroke="#f85149" stroke-width="2"/>
-                <text x="570" y="315" text-anchor="middle" fill="#c9d1d9" font-size="12">Redis</text>
-                <text x="570" y="330" text-anchor="middle" fill="#8b949e" font-size="10">ACK + Pub/Sub</text>
+                <g filter="url(#glow)">
+                    <ellipse cx="470" cy="350" rx="100" ry="45" fill="#0f1322" stroke="#f85149" stroke-width="2"/>
+                    <text x="470" y="345" text-anchor="middle" fill="#f1f5f9" font-family="Outfit" font-size="13" font-weight="600">Redis</text>
+                    <text x="470" y="362" text-anchor="middle" fill="#64748b" font-family="DM Sans" font-size="10">ACK + Pub/Sub</text>
+                </g>
 
                 <!-- MySQL -->
-                <ellipse cx="710" cy="320" rx="70" ry="40" fill="#21262d" stroke="#3fb950" stroke-width="2"/>
-                <text x="710" y="315" text-anchor="middle" fill="#c9d1d9" font-size="12">MySQL</text>
-                <text x="710" y="330" text-anchor="middle" fill="#8b949e" font-size="10">消息持久化</text>
+                <g filter="url(#glow)">
+                    <ellipse cx="700" cy="350" rx="80" ry="45" fill="#0f1322" stroke="#3fb950" stroke-width="2"/>
+                    <text x="700" y="345" text-anchor="middle" fill="#f1f5f9" font-family="Outfit" font-size="13" font-weight="600">MySQL</text>
+                    <text x="700" y="362" text-anchor="middle" fill="#64748b" font-family="DM Sans" font-size="10">消息持久化</text>
+                </g>
 
                 <!-- Arrows -->
-                <path d="M170 200 L220 200" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowhead)"/>
-                <path d="M340 200 L390 200" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowhead)"/>
-                <path d="M485 240 L485 280" stroke="#f85149" stroke-width="1.5" stroke-dasharray="4" marker-end="url(#arrowhead-red)"/>
-                <path d="M665 240 L665 280" stroke="#f85149" stroke-width="1.5" stroke-dasharray="4" marker-end="url(#arrowhead-red)"/>
-                <path d="M485 320 L640 320" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="4" marker-end="url(#arrowhead-green)"/>
-                <path d="M570 280 L570 280" stroke="#f85149" stroke-width="1.5" stroke-dasharray="4"/>
-
-                <!-- Pub/Sub Arrow -->
-                <path d="M530 200 C530 260 610 260 610 200" stroke="#f85149" stroke-width="1.5" fill="none" stroke-dasharray="4"/>
-
                 <defs>
-                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                        <polygon points="0 0, 10 3.5, 0 7" fill="#58a6ff"/>
+                    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                        <path d="M0 0L8 4L0 8Z" fill="#6366f1"/>
                     </marker>
-                    <marker id="arrowhead-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                        <polygon points="0 0, 10 3.5, 0 7" fill="#f85149"/>
+                    <marker id="arrowRed" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                        <path d="M0 0L8 4L0 8Z" fill="#f85149"/>
                     </marker>
-                    <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                        <polygon points="0 0, 10 3.5, 0 7" fill="#3fb950"/>
+                    <marker id="arrowGreen" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                        <path d="M0 0L8 4L0 8Z" fill="#3fb950"/>
                     </marker>
                 </defs>
+
+                <!-- Client to SockJS -->
+                <path d="M160 210 L200 210" stroke="#6366f1" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <!-- SockJS to Cluster -->
+                <path d="M330 210 L390 180" stroke="#6366f1" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <!-- Nodes to Redis -->
+                <path d="M470 260 L470 305" stroke="#f85149" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#arrowRed)"/>
+                <path d="M650 260 L650 305" stroke="#f85149" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#arrowRed)"/>
+
+                <!-- Nodes to MySQL -->
+                <path d="M470 350 L620 350" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#arrowGreen)"/>
+
+                <!-- Pub/Sub between nodes -->
+                <path d="M550 180 C550 140 630 140 630 180" stroke="#f85149" stroke-width="1.5" fill="none" stroke-dasharray="4 2"/>
+                <text x="590" y="130" text-anchor="middle" fill="#f85149" font-family="DM Sans" font-size="9">Pub/Sub</text>
             </svg>
         </div>
 
-        <div class="text-center mt-4">
-            <a href="/architecture" class="btn btn-secondary">查看详细架构文档 →</a>
+        <div class="text-center reveal" style="margin-top: 3rem;">
+            <a href="/architecture" class="btn btn-secondary">
+                查看详细架构文档
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 8h10M9 4l4 4-4 4"/>
+                </svg>
+            </a>
         </div>
     </section>
 
     <!-- Comparison Section -->
-    <section class="section" style="background: var(--secondary);">
-        <div class="section-header">
-            <h2 class="section-title">方案对比</h2>
-            <p class="section-subtitle">与业界其他方案的对比</p>
+    <section class="section quick-start">
+        <div class="section-header reveal">
+            <span class="section-label">方案对比</span>
+            <h2 class="section-title">与业界方案对比</h2>
+            <p class="section-subtitle">全方位领先的技术方案</p>
         </div>
 
-        <div class="table-wrapper" style="max-width: 1000px; margin: 0 auto;">
+        <div class="table-wrapper reveal" style="max-width: 1100px; margin: 0 auto;">
             <table>
                 <thead>
                     <tr>
@@ -345,31 +417,31 @@ notifyManager.saveAndPublish(
                     </tr>
                     <tr>
                         <td>集群支持</td>
-                        <td>✅ Redis Pub/Sub</td>
-                        <td>⚠️ 需适配</td>
-                        <td>❌ 不支持</td>
-                        <td>✅ Broker</td>
+                        <td><span class="check">✓ Redis Pub/Sub</span></td>
+                        <td><span class="warning">⚠️ 需适配</span></td>
+                        <td><span class="cross">✗ 不支持</span></td>
+                        <td><span class="check">✓ Broker</span></td>
                     </tr>
                     <tr>
                         <td>消息确认</td>
-                        <td>✅ ACK 机制</td>
-                        <td>⚠️ 需配置</td>
-                        <td>❌ 不支持</td>
-                        <td>✅ QoS</td>
+                        <td><span class="check">✓ ACK 机制</span></td>
+                        <td><span class="warning">⚠️ 需配置</span></td>
+                        <td><span class="cross">✗ 不支持</span></td>
+                        <td><span class="check">✓ QoS</span></td>
                     </tr>
                     <tr>
                         <td>Spring 集成</td>
-                        <td>✅ 原生</td>
-                        <td>⚠️ 社区</td>
-                        <td>⚠️ 社区</td>
-                        <td>⚠️ 社区</td>
+                        <td><span class="check">✓ 原生</span></td>
+                        <td><span class="warning">⚠️ 社区</span></td>
+                        <td><span class="warning">⚠️ 社区</span></td>
+                        <td><span class="warning">⚠️ 社区</span></td>
                     </tr>
                     <tr>
                         <td>Starter 模式</td>
-                        <td>✅ 零配置</td>
-                        <td>❌ 手动</td>
-                        <td>❌ 手动</td>
-                        <td>❌ 手动</td>
+                        <td><span class="check">✓ 零配置</span></td>
+                        <td><span class="cross">✗ 手动</span></td>
+                        <td><span class="cross">✗ 手动</span></td>
+                        <td><span class="cross">✗ 手动</span></td>
                     </tr>
                     <tr>
                         <td>学习成本</td>
@@ -384,14 +456,14 @@ notifyManager.saveAndPublish(
     </section>
 
     <!-- CTA Section -->
-    <section class="section">
-        <div class="section-header">
-            <h2 class="section-title">准备好开始了吗？</h2>
-            <p class="section-subtitle">立即接入 Quick-Notify，为你的应用添加实时消息推送能力</p>
-        </div>
-        <div class="hero-buttons" style="margin-top: 2rem;">
-            <a href="/docs" class="btn btn-primary">阅读文档</a>
-            <a href="/demo" class="btn btn-secondary">在线演示</a>
+    <section class="cta-section">
+        <div class="reveal">
+            <h2 class="cta-title">准备好开始了吗？</h2>
+            <p class="cta-subtitle">立即接入 Quick-Notify，为你的应用添加实时消息推送能力</p>
+            <div class="hero-buttons">
+                <a href="/docs" class="btn btn-primary">阅读文档</a>
+                <a href="/demo" class="btn btn-secondary">在线演示</a>
+            </div>
         </div>
     </section>
 
@@ -400,9 +472,23 @@ notifyManager.saveAndPublish(
         <div class="footer-content">
             <div class="footer-brand">
                 <a href="/" class="nav-brand">
-                    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="32" height="32" rx="8" fill="#58a6ff"/>
-                        <path d="M8 16L14 22L24 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="logoGradF" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#6366f1"/>
+                                <stop offset="50%" stop-color="#8b5cf6"/>
+                                <stop offset="100%" stop-color="#22d3ee"/>
+                            </linearGradient>
+                            <linearGradient id="logoGradF2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#22d3ee"/>
+                                <stop offset="100%" stop-color="#6366f1"/>
+                            </linearGradient>
+                        </defs>
+                        <rect width="40" height="40" rx="12" fill="url(#logoGradF)"/>
+                        <path d="M20 8C20 8 12 10 12 18C12 20 13 22 14 23V26C14 27 14 28 15 28H25C26 28 26 27 26 26V23C27 22 28 20 28 18C28 10 20 8 20 8Z" fill="white" fill-opacity="0.95"/>
+                        <circle cx="26" cy="14" r="5" fill="#f85149"/>
+                        <circle cx="26" cy="14" r="2.5" fill="white"/>
+                        <path d="M19 16L17 22H21L19 28" stroke="url(#logoGradF2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                     Quick-Notify
                 </a>
@@ -421,7 +507,7 @@ notifyManager.saveAndPublish(
                 <h4>资源</h4>
                 <ul>
                     <li><a href="/demo">在线演示</a></li>
-                    <li><a href="https://github.com/your-repo/quick-notify">GitHub</a></li>
+                    <li><a href="https://github.com/yangli-stu/quick-notify">GitHub</a></li>
                     <li><a href="https://search.maven.org">Maven Central</a></li>
                 </ul>
             </div>
@@ -438,5 +524,38 @@ notifyManager.saveAndPublish(
             <p>© 2024 Quick-Notify. MIT License.</p>
         </div>
     </footer>
+
+    <script>
+        // Scroll reveal animation
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal, .stagger-children').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Navbar scroll effect
+        const navbar = document.querySelector('.navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.style.background = 'rgba(3, 5, 8, 0.95)';
+                navbar.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.3)';
+            } else {
+                navbar.style.background = 'rgba(3, 5, 8, 0.8)';
+                navbar.style.boxShadow = 'none';
+            }
+        });
+    </script>
 </body>
 </html>
