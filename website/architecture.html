@@ -190,144 +190,214 @@
                 </div>
             </div>
 
-            <h2>消息流程</h2>
+            <h2>消息流程详解</h2>
 
-            <h3>点对点消息推送</h3>
+            <h3>1. WebSocket 连接与认证</h3>
             <div class="arch-diagram">
-                <svg viewBox="0 0 800 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <!-- REST API -->
-                    <rect x="20" y="20" width="120" height="50" rx="6" fill="#238636" stroke="#2ea043"/>
-                    <text x="80" y="50" text-anchor="middle" fill="white" font-size="12" font-weight="600">REST API</text>
+                <svg viewBox="0 0 700 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Client -->
+                    <rect x="20" y="30" width="100" height="40" rx="6" fill="#238636" stroke="#2ea043"/>
+                    <text x="70" y="55" text-anchor="middle" fill="white" font-size="11" font-weight="600">客户端</text>
+                    <text x="70" y="80" text-anchor="middle" fill="#8b949e" font-size="9">SockJS + STOMP</text>
 
                     <!-- Arrow 1 -->
-                    <path d="M140 45 L180 45" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow)"/>
+                    <path d="M120 50 L160 50" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+                    <text x="140" y="42" text-anchor="middle" fill="#8b949e" font-size="9">CONNECT + Token</text>
 
-                    <!-- NotifyManager -->
-                    <rect x="180" y="20" width="140" height="50" rx="6" fill="#1f6feb" stroke="#58a6ff"/>
-                    <text x="250" y="45" text-anchor="middle" fill="white" font-size="12" font-weight="600">NotifyManager</text>
-                    <text x="250" y="58" text-anchor="middle" fill="#8b949e" font-size="9">消息持久化</text>
+                    <!-- WebSocket Endpoint -->
+                    <rect x="160" y="20" width="140" height="60" rx="6" fill="#1f6feb" stroke="#58a6ff"/>
+                    <text x="230" y="45" text-anchor="middle" fill="white" font-size="11" font-weight="600">/stomp-ws</text>
+                    <text x="230" y="62" text-anchor="middle" fill="#8b949e" font-size="9">WebSocket Endpoint</text>
 
                     <!-- Arrow 2 -->
-                    <path d="M320 45 L360 45" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow)"/>
+                    <path d="M300 50 L340 50" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
 
-                    <!-- MySQL -->
-                    <rect x="360" y="20" width="100" height="50" rx="6" fill="#8957e5" stroke="#a371f7"/>
-                    <text x="410" y="45" text-anchor="middle" fill="white" font-size="12" font-weight="600">MySQL</text>
-                    <text x="410" y="58" text-anchor="middle" fill="#8b949e" font-size="9">消息存储</text>
+                    <!-- Interceptor -->
+                    <rect x="340" y="20" width="160" height="60" rx="6" fill="#9e6a03" stroke="#d29922"/>
+                    <text x="420" y="42" text-anchor="middle" fill="white" font-size="11" font-weight="600">StompWebsocketInterceptor</text>
+                    <text x="420" y="58" text-anchor="middle" fill="#8b949e" font-size="9">preSend() → extractUserId()</text>
 
-                    <!-- Arrow down -->
-                    <path d="M250 70 L250 100" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow)"/>
+                    <!-- Check box -->
+                    <path d="M420 80 L420 110" stroke="#58a6ff" stroke-width="2"/>
+                    <path d="M420 110 L340 110 L340 140" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+                    <path d="M420 110 L500 110 L500 140" stroke="#f85149" stroke-width="2" marker-end="url(#arr-red)"/>
 
-                    <!-- EventListener -->
-                    <rect x="180" y="100" width="140" height="50" rx="6" fill="#9e6a03" stroke="#d29922"/>
-                    <text x="250" y="125" text-anchor="middle" fill="white" font-size="12" font-weight="600">EventListener</text>
-                    <text x="250" y="138" text-anchor="middle" fill="#8b949e" font-size="9">本地事件处理</text>
+                    <text x="375" y="105" text-anchor="middle" fill="#3fb950" font-size="9">会话 ≤ 10</text>
+                    <text x="470" y="105" text-anchor="middle" fill="#f85149" font-size="9">会话 > 10</text>
 
-                    <!-- Split arrows -->
-                    <path d="M250 150 L250 180" stroke="#58a6ff" stroke-width="2"/>
-                    <path d="M250 180 L100 180 L100 210" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow)"/>
-                    <path d="M250 180 L400 180 L400 210" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow)"/>
+                    <!-- Success path -->
+                    <rect x="280" y="140" width="120" height="40" rx="6" fill="#238636" stroke="#2ea043"/>
+                    <text x="340" y="165" text-anchor="middle" fill="white" font-size="10" font-weight="600">创建 MyPrincipal</text>
 
-                    <!-- Branch labels -->
-                    <text x="160" y="175" text-anchor="middle" fill="#58a6ff" font-size="10">有会话</text>
-                    <text x="340" y="175" text-anchor="middle" fill="#f85149" font-size="10">无会话</text>
+                    <!-- Fail path -->
+                    <rect x="500" y="140" width="120" height="40" rx="6" fill="#f85149" stroke="#da3633"/>
+                    <text x="560" y="165" text-anchor="middle" fill="white" font-size="10" font-weight="600">拒绝连接</text>
 
-                    <!-- Local push box -->
-                    <rect x="30" y="210" width="140" height="50" rx="6" fill="#161b22" stroke="#3fb950"/>
-                    <text x="100" y="235" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">本地推送</text>
-                    <text x="100" y="250" text-anchor="middle" fill="#8b949e" font-size="9">直接发送消息</text>
+                    <!-- Arrow to connected -->
+                    <path d="M340 180 L340 210" stroke="#58a6ff" stroke-width="2"/>
+                    <text x="355" y="198" text-anchor="middle" fill="#8b949e" font-size="9">设置用户</text>
 
-                    <!-- Redis Pub/Sub box -->
-                    <rect x="330" y="210" width="140" height="50" rx="6" fill="#161b22" stroke="#f85149"/>
-                    <text x="400" y="235" text-anchor="middle" fill="#f85149" font-size="11" font-weight="600">Redis Pub/Sub</text>
-                    <text x="400" y="250" text-anchor="middle" fill="#8b949e" font-size="9">发布到集群</text>
+                    <!-- CONNECTED frame -->
+                    <rect x="280" y="210" width="120" height="40" rx="6" fill="#161b22" stroke="#58a6ff"/>
+                    <text x="340" y="232" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="600">CONNECTED 帧</text>
+                    <text x="340" y="247" text-anchor="middle" fill="#8b949e" font-size="9">订阅 /user/queue/msg</text>
 
-                    <!-- Arrow from Redis to cluster -->
-                    <path d="M400 260 L400 290" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow)"/>
-
-                    <!-- Cluster box -->
-                    <rect x="280" y="290" width="240" height="60" rx="8" fill="#21262d" stroke="#30363d" stroke-dasharray="4"/>
-                    <text x="400" y="310" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="600">集群节点</text>
-                    <text x="320" y="330" text-anchor="middle" fill="#8b949e" font-size="9">节点 1</text>
-                    <text x="400" y="330" text-anchor="middle" fill="#8b949e" font-size="9">节点 2</text>
-                    <text x="480" y="330" text-anchor="middle" fill="#8b949e" font-size="9">...</text>
-
-                    <!-- Arrows to clients -->
-                    <path d="M320 350 L120 370" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow)"/>
-                    <path d="M480 350 L280 370" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow)"/>
-
-                    <!-- Client boxes -->
-                    <rect x="50" y="370" width="140" height="45" rx="6" fill="#161b22" stroke="#58a6ff"/>
-                    <text x="120" y="390" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="600">客户端</text>
-                    <text x="120" y="405" text-anchor="middle" fill="#8b949e" font-size="9">收到消息 → 发送 ACK</text>
-
-                    <rect x="210" y="370" width="140" height="45" rx="6" fill="#161b22" stroke="#58a6ff"/>
-                    <text x="280" y="390" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="600">客户端</text>
-                    <text x="280" y="405" text-anchor="middle" fill="#8b949e" font-size="9">收到消息 → 发送 ACK</text>
-
-                    <!-- Arrow definitions -->
                     <defs>
-                        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
                             <path d="M 0 0 L 10 5 L 0 10 z" fill="#58a6ff"/>
+                        </marker>
+                        <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f85149"/>
                         </marker>
                     </defs>
                 </svg>
             </div>
 
-            <h3>ACK 确认机制</h3>
+            <h3>2. 点对点消息推送（持久化 + 集群）</h3>
             <div class="arch-diagram">
-                <svg viewBox="0 0 600 320" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Start node -->
-                    <rect x="220" y="10" width="160" height="45" rx="22" fill="#238636" stroke="#2ea043"/>
-                    <text x="300" y="38" text-anchor="middle" fill="white" font-size="12" font-weight="600">发送消息</text>
+                <svg viewBox="0 0 800 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- REST API -->
+                    <rect x="20" y="20" width="100" height="45" rx="6" fill="#238636" stroke="#2ea043"/>
+                    <text x="70" y="48" text-anchor="middle" fill="white" font-size="11" font-weight="600">REST API</text>
 
-                    <!-- Arrow down -->
-                    <path d="M300 55 L300 80" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow2)"/>
+                    <!-- Arrow to Manager -->
+                    <path d="M120 42 L160 42" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
 
-                    <!-- Redis Hash box -->
-                    <rect x="190" y="80" width="220" height="45" rx="6" fill="#a371f7" stroke="#8957e5"/>
-                    <text x="300" y="100" text-anchor="middle" fill="white" font-size="11" font-weight="600">创建 ACK 记录</text>
-                    <text x="300" y="115" text-anchor="middle" fill="#c9d1d9" font-size="9">Redis Hash: stomp::pending_messages</text>
+                    <!-- NotifyManager -->
+                    <rect x="160" y="10" width="140" height="65" rx="6" fill="#1f6feb" stroke="#58a6ff"/>
+                    <text x="230" y="32" text-anchor="middle" fill="white" font-size="11" font-weight="600">NotifyManager</text>
+                    <text x="230" y="47" text-anchor="middle" fill="#8b949e" font-size="9">saveAndPublish()</text>
+                    <text x="230" y="62" text-anchor="middle" fill="#8b949e" font-size="9">类型校验 + 时间戳</text>
 
-                    <!-- Arrow down -->
-                    <path d="M300 125 L300 150" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow2)"/>
+                    <!-- Arrows to DB and Event -->
+                    <path d="M300 30 L340 30" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+                    <path d="M230 75 L230 100" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
 
-                    <!-- Wait ACK box -->
-                    <rect x="190" y="150" width="220" height="45" rx="6" fill="#9e6a03" stroke="#d29922"/>
-                    <text x="300" y="175" text-anchor="middle" fill="white" font-size="12" font-weight="600">等待客户端 ACK 确认</text>
+                    <!-- MySQL -->
+                    <rect x="340" y="10" width="100" height="50" rx="6" fill="#8957e5" stroke="#a371f7"/>
+                    <text x="390" y="30" text-anchor="middle" fill="white" font-size="11" font-weight="600">MySQL</text>
+                    <text x="390" y="45" text-anchor="middle" fill="#8b949e" font-size="9">notify_log 表</text>
 
-                    <!-- Split arrows -->
-                    <path d="M300 195 L300 220" stroke="#58a6ff" stroke-width="2"/>
-                    <path d="M300 220 L120 220 L120 250" stroke="#3fb950" stroke-width="2" marker-end="url(#arrow2)"/>
-                    <path d="M300 220 L480 220 L480 250" stroke="#f85149" stroke-width="2" marker-end="url(#arrow2)"/>
+                    <!-- EventListener -->
+                    <rect x="160" y="100" width="140" height="50" rx="6" fill="#9e6a03" stroke="#d29922"/>
+                    <text x="230" y="120" text-anchor="middle" fill="white" font-size="11" font-weight="600">NotifyEventListener</text>
+                    <text x="230" y="138" text-anchor="middle" fill="#8b949e" font-size="9">@Async AFTER_COMMIT</text>
 
-                    <!-- Left label -->
-                    <text x="200" y="215" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">收到 ACK</text>
+                    <!-- Arrow to Redis -->
+                    <path d="M230 150 L230 180" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
 
-                    <!-- Right label -->
-                    <text x="420" y="215" text-anchor="middle" fill="#f85149" font-size="11" font-weight="600">超时未确认</text>
+                    <!-- Redis Pub/Sub -->
+                    <rect x="140" y="180" width="180" height="45" rx="6" fill="#f85149" stroke="#da3633"/>
+                    <text x="230" y="203" text-anchor="middle" fill="white" font-size="11" font-weight="600">Redis Pub/Sub</text>
+                    <text x="230" y="218" text-anchor="middle" fill="#8b949e" font-size="9">Topic: stomp::ws_notify_topic</text>
 
-                    <!-- ACK received box -->
-                    <rect x="40" y="250" width="160" height="45" rx="6" fill="#238636" stroke="#2ea043"/>
-                    <text x="120" y="270" text-anchor="middle" fill="white" font-size="11" font-weight="600">删除 ACK 记录</text>
-                    <text x="120" y="285" text-anchor="middle" fill="#c9d1d9" font-size="9">消息投递成功</text>
+                    <!-- Arrows to cluster nodes -->
+                    <path d="M320 202 L360 202" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+                    <path d="M140 202 L100 202" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
 
-                    <!-- Retry box -->
-                    <rect x="400" y="250" width="160" height="45" rx="6" fill="#9e6a03" stroke="#d29922"/>
-                    <text x="480" y="270" text-anchor="middle" fill="white" font-size="11" font-weight="600">定时任务重试</text>
-                    <text x="480" y="285" text-anchor="middle" fill="#c9d1d9" font-size="9">最多 12 次</text>
+                    <!-- Cluster nodes -->
+                    <rect x="360" y="170" width="400" height="100" rx="8" fill="#21262d" stroke="#30363d" stroke-dasharray="4"/>
+                    <text x="560" y="190" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="600">集群节点（所有订阅者）</text>
 
-                    <!-- Arrow from retry to check -->
-                    <path d="M480 295 L480 305" stroke="#58a6ff" stroke-width="2"/>
+                    <!-- Node 1 -->
+                    <rect x="380" y="205" width="110" height="55" rx="6" fill="#161b22" stroke="#3fb950"/>
+                    <text x="435" y="223" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="600">节点 1</text>
+                    <text x="435" y="238" text-anchor="middle" fill="#8b949e" font-size="8">hasSession?</text>
+                    <text x="435" y="252" text-anchor="middle" fill="#3fb950" font-size="8">✓ 有会话 → 推送</text>
 
-                    <!-- Final check -->
-                    <rect x="400" y="305" width="160" height="30" rx="6" fill="#21262d" stroke="#30363d"/>
-                    <text x="480" y="325" text-anchor="middle" fill="#8b949e" font-size="10">超过限制则丢弃</text>
+                    <!-- Node 2 -->
+                    <rect x="510" y="205" width="110" height="55" rx="6" fill="#161b22" stroke="#30363d"/>
+                    <text x="565" y="223" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="600">节点 2</text>
+                    <text x="565" y="238" text-anchor="middle" fill="#8b949e" font-size="8">hasSession?</text>
+                    <text x="565" y="252" text-anchor="middle" fill="#f85149" font-size="8">✗ 无会话</text>
 
-                    <!-- Arrow definitions -->
+                    <!-- Node N -->
+                    <rect x="640" y="205" width="110" height="55" rx="6" fill="#161b22" stroke="#30363d"/>
+                    <text x="695" y="223" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="600">...</text>
+
+                    <!-- Clients -->
+                    <rect x="50" y="290" width="120" height="45" rx="6" fill="#161b22" stroke="#58a6ff"/>
+                    <text x="110" y="312" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="600">客户端 A</text>
+                    <text x="110" y="328" text-anchor="middle" fill="#8b949e" font-size="9">收到 → ACK /app/ack</text>
+
+                    <rect x="620" y="290" width="120" height="45" rx="6" fill="#161b22" stroke="#58a6ff"/>
+                    <text x="680" y="312" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="600">客户端 B</text>
+                    <text x="680" y="328" text-anchor="middle" fill="#8b949e" font-size="9">收到 → ACK /app/ack</text>
+
+                    <!-- Arrows from nodes to clients -->
+                    <path d="M435 260 L110 285" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr-green)"/>
+                    <path d="M565 260 L680 285" stroke="#30363d" stroke-width="1.5" stroke-dasharray="3"/>
+
                     <defs>
-                        <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
                             <path d="M 0 0 L 10 5 L 0 10 z" fill="#58a6ff"/>
+                        </marker>
+                        <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#3fb950"/>
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+
+            <h3>3. ACK 确认机制（Redis Hash 追踪）</h3>
+            <div class="arch-diagram">
+                <svg viewBox="0 0 700 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Start -->
+                    <rect x="280" y="10" width="140" height="40" rx="20" fill="#238636" stroke="#2ea043"/>
+                    <text x="350" y="35" text-anchor="middle" fill="white" font-size="11" font-weight="600">sendMessageWithAck()</text>
+
+                    <!-- Arrow down -->
+                    <path d="M350 50 L350 75" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+                    <!-- Create ACK Record -->
+                    <rect x="230" y="75" width="240" height="45" rx="6" fill="#a371f7" stroke="#8957e5"/>
+                    <text x="350" y="95" text-anchor="middle" fill="white" font-size="11" font-weight="600">addAckMessageRecord()</text>
+                    <text x="350" y="110" text-anchor="middle" fill="#c9d1d9" font-size="9">Redis Hash: stomp::pending_messages<br/>Key = {msgId}::{sessionId}</text>
+
+                    <!-- Arrow down -->
+                    <path d="M350 120 L350 145" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+                    <!-- Send to Client -->
+                    <rect x="260" y="145" width="180" height="40" rx="6" fill="#1f6feb" stroke="#58a6ff"/>
+                    <text x="350" y="170" text-anchor="middle" fill="white" font-size="11" font-weight="600">/user/{userId}/queue/msg</text>
+
+                    <!-- Split -->
+                    <path d="M350 185 L350 210" stroke="#58a6ff" stroke-width="2"/>
+                    <path d="M350 210 L150 210 L150 240" stroke="#3fb950" stroke-width="2" marker-end="url(#arr-green)"/>
+                    <path d="M350 210 L550 210 L550 240" stroke="#d29922" stroke-width="2" marker-end="url(#arr-yellow)"/>
+
+                    <text x="200" y="205" text-anchor="middle" fill="#3fb950" font-size="10">收到 ACK</text>
+                    <text x="500" y="205" text-anchor="middle" fill="#d29922" font-size="10">5秒超时</text>
+
+                    <!-- ACK path -->
+                    <rect x="60" y="240" width="180" height="40" rx="6" fill="#238636" stroke="#2ea043"/>
+                    <text x="150" y="265" text-anchor="middle" fill="white" font-size="10" font-weight="600">acknowledge() 删除记录</text>
+
+                    <!-- Retry path -->
+                    <rect x="460" y="240" width="180" height="40" rx="6" fill="#9e6a03" stroke="#d29922"/>
+                    <text x="550" y="258" text-anchor="middle" fill="white" font-size="10" font-weight="600">retryRedisMessages()</text>
+                    <text x="550" y="273" text-anchor="middle" fill="#8b949e" font-size="9">每5秒重试，最多12次</text>
+
+                    <!-- Split retry -->
+                    <path d="M550 280 L550 295" stroke="#58a6ff" stroke-width="2"/>
+                    <path d="M550 295 L450 295 L450 315" stroke="#3fb950" stroke-width="2" marker-end="url(#arr-green)"/>
+                    <path d="M550 295 L650 295 L650 315" stroke="#f85149" stroke-width="2" marker-end="url(#arr-red)"/>
+
+                    <text x="490" y="290" text-anchor="middle" fill="#3fb950" font-size="9">重试 &lt; 12</text>
+                    <text x="630" y="290" text-anchor="middle" fill="#f85149" font-size="9">超限 → 丢弃</text>
+
+                    <defs>
+                        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#58a6ff"/>
+                        </marker>
+                        <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#3fb950"/>
+                        </marker>
+                        <marker id="arr-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#d29922"/>
+                        </marker>
+                        <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f85149"/>
                         </marker>
                     </defs>
                 </svg>

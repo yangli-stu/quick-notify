@@ -63,7 +63,7 @@
             <div class="demo-body">
                 <div class="demo-controls">
                     <input type="text" id="userId" placeholder="输入用户 ID (如: test1)" value="test1">
-                    <input type="text" id="serverUrl" placeholder="服务器地址" value="http://localhost:2025/stomp-ws" style="max-width: 300px;">
+                    <input type="text" id="serverUrl" placeholder="服务器地址" style="max-width: 300px;">
                     <button id="connectBtn" class="btn btn-primary" onclick="connect()">连接</button>
                     <button id="disconnectBtn" class="btn btn-secondary" onclick="disconnect()" disabled>断开</button>
                 </div>
@@ -132,8 +132,16 @@
     </div>
 
     <script>
+        // 后端地址配置（部署时由 deploy.sh 自动修改）
+        const BACKEND_URL = 'http://localhost:2025';
+
         let stompClient = null;
         let currentUserId = null;
+
+        // 设置默认后端地址
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('serverUrl').value = BACKEND_URL + '/stomp-ws';
+        });
 
         function log(message, type = 'info') {
             const logEl = document.getElementById('log');

@@ -8,9 +8,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/styles.css">
     <!-- Markdown 渲染 -->
     <script src="/js/marked.min.js"></script>
+    <script src="/js/mermaid.min.js"></script>
     <style>
         /* Markdown 文章样式 */
         .article-container {
@@ -305,15 +306,22 @@
             content.innerHTML = '<div class="loading">加载中...</div>';
 
             try {
-                const response = await fetch(`blog-articles/${slug}.md`);
+                // 使用根路径确保无论在哪个 URL 下都能正确加载
+                const response = await fetch(`/blog-articles/${slug}.md`);
                 if (!response.ok) throw new Error('文章加载失败');
 
                 const markdown = await response.text();
                 const post = blogPosts.find(p => p.slug === slug);
 
                 // 去除 frontmatter (---...---)
-                const contentStart = markdown.indexOf('---', 3);
-                const cleanMarkdown = contentStart > 0 ? markdown.substring(contentStart + 3).trim() : markdown;
+                // 只有当文件以 --- 开头时才处理 frontmatter
+                let cleanMarkdown = markdown;
+                if (markdown.trim().startsWith('---')) {
+                    const endIndex = markdown.indexOf('---', 3);
+                    if (endIndex > 3) {
+                        cleanMarkdown = markdown.substring(endIndex + 3).trim();
+                    }
+                }
 
                 // 解析 Markdown
                 const html = marked.parse(cleanMarkdown);
@@ -328,6 +336,11 @@
                     </div>
                     <div class="article-content">${html}</div>
                 `;
+
+                // 渲染 mermaid 流程图
+                if (typeof mermaid !== 'undefined') {
+                    mermaid.run({ nodes: content.querySelectorAll('.mermaid') });
+                }
 
                 // 滚动到顶部
                 window.scrollTo(0, 0);
@@ -363,6 +376,20 @@
 
         // 页面加载
         handleRoute();
+
+        // 初始化 mermaid 主题
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: '#21262d',
+                primaryTextColor: '#c9d1d9',
+                primaryBorderColor: '#30363d',
+                lineColor: '#58a6ff',
+                secondaryColor: '#161b22',
+                tertiaryColor: '#0d1117'
+            }
+        });
     </script>
 </body>
 </html>

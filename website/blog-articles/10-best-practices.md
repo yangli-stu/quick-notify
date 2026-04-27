@@ -179,7 +179,7 @@ registry.addEndpoint("/stomp-ws")
 **解决方案**：
 
 ```javascript
-// 客户端实现消息排序
+// 客户端实现消息排序（在 connect 回调中执行）
 const messageStore = new Map();  // messageId → message
 
 stompClient.subscribe('/user/queue/msg', function(message) {

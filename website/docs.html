@@ -279,6 +279,42 @@ stompClient.connect(
             <section id="stomp-paths" class="docs-section">
                 <h2>STOMP 路径</h2>
 
+                <h3>WebSocket 连接流程</h3>
+                <p>WebSocket 连接需要先携带 Token 认证，连接成功后再订阅消息：</p>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-lang">JavaScript</span>
+                    </div>
+                    <div class="code-content">
+                        <pre><code><span class="comment">// Step 1: 创建 STOMP 客户端</span>
+<span class="keyword">const</span> stompClient = Stomp.over(<span class="keyword">new</span> SockJS(<span class="string">'/stomp-ws'</span>));
+
+<span class="comment">// Step 2: 连接 WebSocket（dev 模式 token 直接作为用户ID）</span>
+stompClient.connect(
+    { Authorization: <span class="string">'testuser'</span> },
+
+    <span class="comment">// Step 3: 连接成功回调 - 在此处订阅消息</span>
+    (frame) => {
+        console.log(<span class="string">'连接成功'</span>);
+
+        <span class="comment">// 订阅个人消息队列</span>
+        stompClient.subscribe(<span class="string">'/user/queue/msg'</span>, (msg) => {
+            <span class="keyword">const</span> data = JSON.parse(msg.body);
+            console.log(<span class="string">'收到消息:'</span>, data);
+
+            <span class="comment">// 发送 ACK 确认</span>
+            stompClient.send(<span class="string">'/app/ack'</span>, {}, data.id);
+        });
+    },
+
+    <span class="comment">// 连接失败回调</span>
+    (error) => { console.error(<span class="string">'连接失败'</span>, error); }
+);</code></pre>
+                    </div>
+                </div>
+
+                <h3>路径说明</h3>
                 <div class="table-wrapper">
                     <table>
                         <thead>
@@ -292,22 +328,22 @@ stompClient.connect(
                             <tr>
                                 <td>/user/queue/msg</td>
                                 <td>订阅</td>
-                                <td>接收个人消息</td>
+                                <td>接收个人消息（自动路由到 /user/{userId}/queue/msg）</td>
                             </tr>
                             <tr>
                                 <td>/topic/messages</td>
                                 <td>订阅</td>
-                                <td>接收广播消息</td>
+                                <td>接收广播消息（所有订阅者都能收到）</td>
                             </tr>
                             <tr>
                                 <td>/app/sendMessage</td>
                                 <td>发送</td>
-                                <td>发送消息</td>
+                                <td>客户端发送消息，路由到 @MessageMapping</td>
                             </tr>
                             <tr>
                                 <td>/app/ack</td>
                                 <td>发送</td>
-                                <td>消息确认</td>
+                                <td>消息确认（携带 messageId）</td>
                             </tr>
                         </tbody>
                     </table>
@@ -365,12 +401,14 @@ stompClient.connect(
                 </ul>
 
                 <h3>客户端 ACK</h3>
+                <p>注意：以下代码需要在 <code>stompClient.connect()</code> 的成功回调中执行：</p>
                 <div class="code-block">
                     <div class="code-header">
                         <span class="code-lang">JavaScript</span>
                     </div>
                     <div class="code-content">
-                        <pre><code>stompClient.subscribe(<span class="string">'/user/queue/msg'</span>, (msg) => {
+                        <pre><code><span class="comment">// 连接成功后订阅（完整示例见上文）</span>
+stompClient.subscribe(<span class="string">'/user/queue/msg'</span>, (msg) => {
     <span class="keyword">const</span> data = JSON.parse(msg.body);
     <span class="comment">// 处理业务逻辑</span>
     processMessage(data);

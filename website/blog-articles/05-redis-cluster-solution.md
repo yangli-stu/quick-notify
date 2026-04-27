@@ -13,18 +13,17 @@ description: 深入讲解 Quick-Notify 如何基于 Redis Pub/Sub 实现 WebSock
 
 ### 1.1 集群环境下的消息路由问题
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      集群环境下的消息路由问题                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│   用户 A ──────► 节点 1 (Session 存在)                          │
-│                                                                 │
-│   业务系统 ──────► 节点 2 (用户 A 的 Session 不在这里！)           │
-│                                                                 │
-│   问题：消息发到节点 2，但用户 A 连接到节点 1，消息如何送达？       │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph Cluster ["集群环境下的消息路由问题"]
+        BA[用户 A] -->|连接| N1[节点 1]
+        Sys[业务系统] -->|发送消息| N2[节点 2]
+
+        N1 -.->|Session 不在| N2
+        N2 -.->|用户 A 的 Session 在节点 1| N1
+
+        Note[问题：消息发到节点 2，但用户 A 连接到节点 1]
+    end
 ```
 
 ### 1.2 传统解决方案
@@ -40,14 +39,12 @@ description: 深入讲解 Quick-Notify 如何基于 Redis Pub/Sub 实现 WebSock
 
 ### 2.1 什么是 Pub/Sub
 
-```
-发布者                               订阅者
-  │                                   │
-  │──── PUBLISH channel "msg" ──────▶│
-  │                                   │
-  │                                   │
-  │──── PUBLISH channel "msg" ──────▶│
-  │                                   │
+```mermaid
+graph LR
+    P[发布者] -->|PUBLISH channel| R[Redis]
+    R -->|广播| S1[订阅者 1]
+    R -->|广播| S2[订阅者 2]
+    R -->|广播| S3[订阅者 3]
 ```
 
 Pub/Sub（Publish/Subscribe）是 Redis 提供的**发布订阅**功能，支持：
@@ -163,106 +160,84 @@ sequenceDiagram
 
 ## 四、核心实现
 
-### 4.1 事件发布
+### 4.1 NotifyMessageEvent
 
 ```java
 /**
  * 消息事件
+ * 注意：本地事件发布时携带 NotifyMessageLog 对象
  */
-public record NotifyMessageEvent(
-    String id,
-    String type,
-    String receiver,
-    Object data,
-    long timestamp
-) {
-    public NotifyMessage convert() {
-        return NotifyMessage.builder()
-            .id(id)
-            .type(type)
-            .receiver(receiver)
-            .data(data)
-            .created(timestamp)
-            .build();
+public record NotifyMessageEvent(NotifyMessageLog notifyMessageLog) {
+    // 获取消息内容
+    public NotifyMessageLog getMessage() {
+        return notifyMessageLog;
     }
 }
 ```
 
-### 4.2 事件监听器
+### 4.2 事件监听器（核心逻辑）
 
 ```java
-@Component
 @Slf4j
 public class NotifyEventListener {
 
     private static final String NOTIFY_TOPIC = "stomp::ws_notify_topic";
 
-    @Autowired
     private StompWebSocketHandler stompWebSocketHandler;
-
-    @Autowired
-    private Redisson redisson;
+    private RedissonClient redisson;
 
     /**
-     * 监听本地 Spring 事件
+     * 处理 NotifyMessageEvent（@Async + AFTER_COMMIT）
+     * 本地事件触发：发布到 Redis Topic
+     * 远程事件触发：检查本地会话并推送
      */
     @Async
-    @TransactionalEventListener
-    public void handleLocalEvent(NotifyMessageEvent event) {
-        log.debug("[EventListener] 收到本地事件, msgId: {}, receiver: {}",
-                event.id(), event.receiver());
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handler(NotifyMessageEvent event) {
+        handlerEvent(event, true);  // isLocalEvent = true
+    }
 
-        // 本地事件：广播到 Redis，让集群所有节点都能处理
-        publishClusterEvent(event);
+    private void handlerEvent(NotifyMessageEvent event, boolean isLocalEvent) {
+        NotifyMessageLog msgLog = event.notifyMessageLog();
+
+        if (isLocalEvent) {
+            // 本地事件：直接发布到 Redis，让所有节点都能收到
+            publishClusterEvent(event);
+            return;
+        }
+
+        // 远程事件：检查本地是否有目标用户的会话
+        if (stompWebSocketHandler.hasSession(msgLog.getReceiver())) {
+            log.debug("[EventListener] 本地有会话, 推送消息, msgId: {}, receiver: {}",
+                    msgLog.getId(), msgLog.getReceiver());
+            stompWebSocketHandler.sendMessageWithAck(msgLog.toNotifyMessage());
+        }
     }
 
     /**
-     * 发布集群事件
+     * 发布集群事件到 Redis Pub/Sub
      */
     private void publishClusterEvent(NotifyMessageEvent event) {
         RTopic topic = redisson.getTopic(NOTIFY_TOPIC);
         topic.publish(event);
-        log.debug("[EventListener] 发布集群事件, msgId: {}, receiver: {}",
-                event.id(), event.receiver());
     }
 
     /**
      * 订阅集群事件（启动时调用）
      */
-    @PostConstruct
     public void subscribeToTopic() {
         RTopic topic = redisson.getTopic(NOTIFY_TOPIC);
-
         topic.addListener(NotifyMessageEvent.class, (channel, event) -> {
-            log.debug("[EventListener] 收到集群事件, msgId: {}, receiver: {}",
-                    event.id(), event.receiver());
-
-            // 处理集群事件（isLocalEvent = false）
-            handleClusterEvent(event);
+            // 处理远程事件（isLocalEvent = false）
+            handlerEvent(event, false);
         });
-
-        log.info("[EventListener] 已订阅集群主题: {}", NOTIFY_TOPIC);
-    }
-
-    /**
-     * 处理集群事件
-     */
-    private void handleClusterEvent(NotifyMessageEvent event) {
-        NotifyMessage message = event.convert();
-
-        // 检查本地是否有目标用户的会话
-        if (stompWebSocketHandler.hasSession(message.getReceiver())) {
-            log.info("[EventListener] 本地有会话, 推送消息, msgId: {}, receiver: {}",
-                    message.getId(), message.getReceiver());
-
-            stompWebSocketHandler.sendMessageWithAck(message);
-        } else {
-            log.debug("[EventListener] 本地无会话, 忽略, msgId: {}, receiver: {}",
-                    message.getId(), message.getReceiver());
-        }
     }
 }
 ```
+
+**关键设计**：
+- 本地事件（isLocalEvent=true）：发布到 Redis Topic → 所有节点收到
+- 远程事件（isLocalEvent=false）：检查本地会话 → 有则推送，无则忽略
 
 ### 4.3 NotifyManager 编排
 
@@ -274,39 +249,22 @@ public class NotifyManager {
 
     /**
      * 保存并发布消息
+     * 1. 类型校验
+     * 2. 设置时间戳
+     * 3. 持久化到数据库
+     * 4. 发布 Spring 事件（触发集群广播）
      */
-    @Transactional
     public NotifyMessageLog saveAndPublish(NotifyMessageLog msg) {
-        // 1. 持久化到数据库
-        NotifyMessageLog saved = repository.save(msg);
+        MessageTypeRegistry.checkDataType(msg.getType(), msg.getData());
 
-        // 2. 发布事件（触发 WebSocket 推送）
-        NotifyMessageEvent event = new NotifyMessageEvent(
-            saved.getId(),
-            saved.getType(),
-            saved.getReceiver(),
-            saved.getData(),
-            System.currentTimeMillis()
-        );
+        if (msg.getCreated() == 0) {
+            msg.setCreated(System.currentTimeMillis());
+        }
 
-        eventPublisher.publishEvent(event);
+        repository.save(msg);
+        eventPublisher.publishEvent(new NotifyMessageEvent(msg));
 
-        return saved;
-    }
-
-    /**
-     * 仅发布消息（不持久化）
-     */
-    public void publish(NotifyMessageLog msg) {
-        NotifyMessageEvent event = new NotifyMessageEvent(
-            msg.getId() != null ? msg.getId() : UUID.randomUUID().toString(),
-            msg.getType(),
-            msg.getReceiver(),
-            msg.getData(),
-            System.currentTimeMillis()
-        );
-
-        eventPublisher.publishEvent(event);
+        return msg;
     }
 }
 ```
