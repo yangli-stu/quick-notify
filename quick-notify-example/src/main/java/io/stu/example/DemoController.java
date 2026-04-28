@@ -2,7 +2,6 @@ package io.stu.example;
 
 import io.stu.notify.NotifyManager;
 import io.stu.notify.model.MessageTypeRegistry;
-import io.stu.notify.model.NotifyMessage;
 import io.stu.notify.repository.NotifyMessageLog;
 import io.stu.notify.stomp.StompWebSocketHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -61,18 +60,19 @@ public class DemoController {
             @PathVariable(value = "receiver", required = false) String receiver,
             @RequestBody String message) {
 
-        NotifyMessage msg = NotifyMessage.builder()
-                .id(java.util.UUID.randomUUID().toString())
-                .receiver(receiver)
-                .data(message)
-                .type(MessageTypeRegistry.STRING_MSG)
-                .viewed(false)
-                .build();
+        NotifyMessageLog msg = new NotifyMessageLog();
+        msg.setId(System.currentTimeMillis() + "");
+        msg.setReceiver(receiver);
+        msg.setData(message);
+        msg.setType(MessageTypeRegistry.STRING_MSG);
+        msg.setViewed(false);
+        msg.setCreated(System.currentTimeMillis());
+        msg.setLastModified(System.currentTimeMillis());
 
         if (receiver == null || receiver.isBlank()) {
-            webSocketHandler.broadcastMessage(msg);
+            webSocketHandler.broadcastMessage(msg.toNotifyMessage());
         } else {
-            webSocketHandler.sendMessageWithAck(msg);
+            notifyManager.saveAndPublish(msg);
         }
         return "Message pushed successfully";
     }

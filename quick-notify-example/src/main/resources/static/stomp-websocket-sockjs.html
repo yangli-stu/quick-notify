@@ -3,256 +3,668 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>STOMP WebSocket 消息推送 Demo</title>
+    <title>Quick-Notify WebSocket Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"></script>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        * {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: #0a0a0f;
+            background-image:
+                radial-gradient(ellipse at 20% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 100%, rgba(34, 211, 238, 0.1) 0%, transparent 50%);
+            min-height: 100vh;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Cyber glow effect */
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.3), 0 0 40px rgba(34, 211, 238, 0.1);
+        }
+
+        .glow-purple {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(139, 92, 246, 0.1);
+        }
+
+        .glow-green {
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+        }
+
+        .glow-red {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Animated border */
+        .cyber-border {
+            position: relative;
+            background: linear-gradient(135deg, rgba(20, 20, 35, 0.95), rgba(15, 15, 25, 0.98));
+            backdrop-filter: blur(10px);
+        }
+
+        .cyber-border::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 1px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.5), rgba(34, 211, 238, 0.3), rgba(139, 92, 246, 0.5));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+        }
+
+        /* Input styling */
+        .cyber-input {
+            background: rgba(15, 15, 25, 0.8);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .cyber-input:focus {
+            border-color: rgba(34, 211, 238, 0.8);
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.2);
+            outline: none;
+        }
+
+        .cyber-input::placeholder {
+            color: rgba(148, 163, 184, 0.5);
+        }
+
+        /* Button base */
+        .cyber-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .cyber-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.5s ease;
+        }
+
+        .cyber-btn:hover::before {
+            transform: translateX(100%);
+        }
+
+        /* Primary button */
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 25px rgba(99, 102, 241, 0.6);
+            transform: translateY(-2px);
+        }
+
+        /* Success button */
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 6px 25px rgba(16, 185, 129, 0.6);
+            transform: translateY(-2px);
+        }
+
+        /* Danger button */
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #f87171);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 6px 25px rgba(239, 68, 68, 0.6);
+            transform: translateY(-2px);
+        }
+
+        /* Message bubbles */
+        .msg-incoming {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.1));
+            border-left: 3px solid rgba(34, 211, 238, 0.8);
+        }
+
+        .msg-outgoing {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(52, 211, 153, 0.1));
+            border-right: 3px solid rgba(34, 197, 94, 0.8);
+        }
+
+        .msg-system {
+            background: rgba(30, 30, 50, 0.5);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        /* Status indicator */
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
+        }
+
+        .status-connected {
+            background: #34d399;
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.8);
+        }
+
+        .status-disconnected {
+            background: #f87171;
+            box-shadow: 0 0 10px rgba(248, 113, 113, 0.8);
+            animation: none;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 15, 25, 0.5);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 3px;
+        }
+
+        /* Grid background pattern */
+        .grid-bg {
+            background-image:
+                linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        /* Floating particles effect */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(34, 211, 238, 0.6);
+            border-radius: 50%;
+            animation: float 6s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            25% { opacity: 1; }
+            50% { transform: translateY(-100px) translateX(20px); opacity: 0.5; }
+            75% { opacity: 1; }
+        }
+
+        /* Terminal style */
+        .terminal {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .terminal-header {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.8), rgba(234, 179, 8, 0.8), rgba(34, 197, 94, 0.8));
+            height: 3px;
+        }
+
+        /* Neon text */
+        .neon-text {
+            text-shadow: 0 0 10px rgba(34, 211, 238, 0.8), 0 0 20px rgba(34, 211, 238, 0.5);
+        }
+
+        /* Card hover effect */
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+    </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="text-gray-100 grid-bg">
+    <!-- Floating particles -->
+    <div class="particle" style="left: 10%; top: 20%; animation-delay: 0s;"></div>
+    <div class="particle" style="left: 20%; top: 80%; animation-delay: 1s;"></div>
+    <div class="particle" style="left: 60%; top: 40%; animation-delay: 2s;"></div>
+    <div class="particle" style="left: 80%; top: 60%; animation-delay: 3s;"></div>
+    <div class="particle" style="left: 90%; top: 10%; animation-delay: 4s;"></div>
 
-<div class="max-w-4xl mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-4 text-center text-blue-700">STOMP WebSocket 消息推送 Demo</h1>
+    <div class="max-w-5xl mx-auto px-6 py-10 relative">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <div class="inline-flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 flex items-center justify-center">
+                    <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 10h2v2H6zm0 4h8v2H6zm10-4h2v6h-2zm-6 0h4v2h-4z"/>
+                    </svg>
+                </div>
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                    Quick-Notify
+                </h1>
+            </div>
+            <p class="text-gray-400 text-lg">企业级实时消息推送系统 · WebSocket STOMP 协议</p>
+        </header>
 
-    <!-- 连接设置 -->
-    <div class="bg-white p-4 rounded shadow mb-4 space-y-4">
-        <div class="flex items-center space-x-2">
-            <label class="text-sm text-gray-600">Token:</label>
-            <input id="tokenInput" type="text" value="test1" class="flex-1 px-2 py-1 border border-gray-300 rounded">
-            <label class="text-sm text-gray-600">服务器地址:</label>
-            <input id="serverInput" type="text" value="http://localhost:2025" class="flex-1 px-2 py-1 border border-gray-300 rounded">
-            <button id="connectButton" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">连接</button>
+        <!-- Connection Panel -->
+        <div class="cyber-border rounded-2xl p-6 mb-6 card-hover">
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-lg font-semibold text-gray-200 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                    连接配置
+                </h2>
+                <div id="connectionStatus" class="flex items-center gap-2 text-sm">
+                    <div class="status-dot status-disconnected"></div>
+                    <span class="text-gray-400">未连接</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-1">
+                    <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wider">Token</label>
+                    <input id="tokenInput" type="text" value="test1" class="cyber-input w-full px-4 py-3 rounded-xl text-sm">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wider">服务器地址</label>
+                    <input id="serverInput" type="text" value="http://localhost:2025" class="cyber-input w-full px-4 py-3 rounded-xl text-sm">
+                </div>
+                <div class="md:col-span-1 flex items-end gap-2">
+                    <button id="connectButton" class="cyber-btn btn-primary flex-1 px-4 py-3 rounded-xl font-semibold text-white">
+                        <span class="flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            连接
+                        </span>
+                    </button>
+                    <button id="disconnectButton" class="cyber-btn btn-danger px-4 py-3 rounded-xl hidden">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
-        <div id="connectionStatus" class="text-sm text-gray-600 flex items-center">
-            <i class="fa fa-circle-o text-yellow-500 mr-1"></i> 未连接
+
+        <!-- Messages Panel -->
+        <div class="cyber-border rounded-2xl mb-6 overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-800/50">
+                <h2 class="text-lg font-semibold text-gray-200 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                    消息记录
+                </h2>
+                <button onclick="clearMessages()" class="text-xs text-gray-500 hover:text-gray-300 transition-colors">
+                    清空记录
+                </button>
+            </div>
+            <div id="messageContainer" class="h-80 overflow-y-auto p-6 space-y-3">
+                <div class="text-center text-gray-500 py-12">
+                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                    <p>尚未连接，等待消息到来...</p>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <!-- 消息区域 -->
-    <div class="bg-white p-4 rounded shadow h-[300px] overflow-y-auto mb-4" id="messageContainer">
-        <p class="text-gray-400 text-center">尚未连接...</p>
-    </div>
-
-    <!-- 发送消息 -->
-    <div class="flex items-center space-x-2 bg-white p-4 rounded shadow">
-        <input id="messageInput" type="text" placeholder="输入消息..." class="flex-1 px-4 py-2 border border-gray-300 rounded">
-        <button id="sendButton" disabled class="bg-gray-300 text-gray-600 px-4 py-2 rounded cursor-not-allowed">发送</button>
-    </div>
-
-    <div class="mt-6 bg-white rounded-xl shadow-lg p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">API 说明</h2>
-        <p class="text-gray-600 mb-4">服务器提供 REST API 用于主动推送消息：</p>
-        <div class="bg-gray-50 p-4 rounded-lg text-sm text-gray-600 space-y-2">
-            <p>示例(所有用户)：curl -X POST -d "Hello World." http://localhost:2025/vh-stomp-wsend/push_all_obj</p>
-            <p>示例(指定用户)：curl -X POST -d "Hello World." http://localhost:2025/vh-stomp-wsend/push_all_obj/test1</p>
+        <!-- Send Message Panel -->
+        <div class="cyber-border rounded-2xl p-6 mb-6">
+            <div class="flex gap-4">
+                <input id="messageInput" type="text" placeholder="输入消息内容，按 Enter 发送..." class="cyber-input flex-1 px-5 py-4 rounded-xl text-sm">
+                <button id="sendButton" disabled class="cyber-btn btn-success px-8 py-4 rounded-xl font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                        发送
+                    </span>
+                </button>
+            </div>
         </div>
-    </div>
 
-    <div class="mt-6 bg-white rounded-xl shadow-lg p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">集群广播测试</h2>
-        <div class="bg-gray-50 p-4 rounded-lg text-sm text-gray-600 space-y-2">
-            <p>1.修改端口为2117，保持原2025服务正常的情况下，启动一个新服务</p>
-            <p>2.新开页面，基于test2用户连接2117</p>
-            <p>3.发送消息给2025节点，推送到2117的test2用户：curl -X POST -d "Hello World."
-                http://localhost:2025/vh-stomp-wsend/cluster/notify/test2</p>
+        <!-- Info Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- API Docs -->
+            <div class="cyber-border rounded-2xl p-6 card-hover">
+                <h3 class="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                    </svg>
+                    REST API
+                </h3>
+                <div class="terminal rounded-xl overflow-hidden">
+                    <div class="terminal-header"></div>
+                    <div class="p-4 text-sm space-y-4">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <span class="text-green-400">#</span> <span class="text-gray-300">广播所有用户</span>
+                                </div>
+                                <button onclick="triggerBroadcast()" class="cyber-btn btn-success px-3 py-1 rounded-lg text-xs font-medium">
+                                    执行
+                                </button>
+                            </div>
+                            <div class="text-indigo-300 text-xs font-mono">curl -X POST -d "Hello" http://localhost:2025/vh-stomp-wsend/push_all_obj</div>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <span class="text-green-400">#</span> <span class="text-gray-300">指定用户推送</span>
+                                </div>
+                                <button onclick="triggerPush()" class="cyber-btn btn-primary px-3 py-1 rounded-lg text-xs font-medium">
+                                    执行
+                                </button>
+                            </div>
+                            <div class="text-indigo-300 text-xs font-mono">curl -X POST -d "Hello" http://localhost:2025/vh-stomp-wsend/push_all_obj/test1</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cluster Test -->
+            <div class="cyber-border rounded-2xl p-6 card-hover">
+                <h3 class="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+                    </svg>
+                    集群广播测试
+                </h3>
+                <div class="space-y-3 text-sm text-gray-400">
+                    <p class="flex items-start gap-2">
+                        <span class="text-cyan-400">1.</span>
+                        修改端口为 2117，保持原 2025 服务正常启动新服务
+                    </p>
+                    <p class="flex items-start gap-2">
+                        <span class="text-cyan-400">2.</span>
+                        新开页面，基于 test2 用户连接 2117 端口
+                    </p>
+                    <p class="flex items-start gap-2">
+                        <span class="text-cyan-400">3.</span>
+                        从 2025 节点发送跨节点消息：
+                    </p>
+                    <div class="terminal rounded-lg p-3 text-xs">
+                        <span class="text-indigo-300">curl -X POST -d "Hello" http://localhost:2025/vh-stomp-wsend/cluster/notify/test2</span>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <!-- Footer -->
+        <footer class="text-center mt-10 text-gray-500 text-sm">
+            <p>Quick-Notify · 企业级实时消息推送系统 · 基于 Spring Boot + WebSocket + STOMP + Redis</p>
+        </footer>
     </div>
-</div>
 
-<script>
-    let stompClient = null;
+    <script>
+        let stompClient = null;
+        const processedIds = new Set();
+        let lastMessageTime = 0;
 
-    // 已处理消息ID，用于去重
-    const processedIds = new Set();
-    // 最近收到消息的时间戳（用于断线重连后拉取历史消息）
-    let lastMessageTime = 0;
+        const tokenInput = document.getElementById('tokenInput');
+        const serverInput = document.getElementById('serverInput');
+        const connectButton = document.getElementById('connectButton');
+        const disconnectButton = document.getElementById('disconnectButton');
+        const sendButton = document.getElementById('sendButton');
+        const messageInput = document.getElementById('messageInput');
+        const messageContainer = document.getElementById('messageContainer');
+        const connectionStatus = document.getElementById('connectionStatus');
 
-    const tokenInput = document.getElementById('tokenInput');
-    const serverInput = document.getElementById('serverInput');
-    const connectButton = document.getElementById('connectButton');
-    const sendButton = document.getElementById('sendButton');
-    const messageInput = document.getElementById('messageInput');
-    const messageContainer = document.getElementById('messageContainer');
-    const connectionStatus = document.getElementById('connectionStatus');
-
-    connectButton.addEventListener('click', connect);
-    sendButton.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') sendMessage();
-    });
-
-    /**
-     * 连接 WebSocket
-     */
-    function connect() {
-      const token = tokenInput.value.trim();
-      const baseUrl = serverInput.value.trim().replace(/\/+$/, '');
-
-      const socket = new SockJS(`${baseUrl}/stomp-ws`, null, {
-            transports: ['websocket', 'xhr-polling']
+        connectButton.addEventListener('click', connect);
+        disconnectButton.addEventListener('click', disconnect);
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') sendMessage();
         });
-      stompClient = Stomp.over(socket);
-      stompClient.debug = null;
 
-      stompClient.connect(
-        { Authorization: `${token}` },
-        function (frame) {
-          updateStatus('connected');
-          appendMessage('系统', '连接成功，正在同步消息...', 'system');
+        function connect() {
+            const token = tokenInput.value.trim();
+            const baseUrl = serverInput.value.trim().replace(/\/+$/, '');
 
-          // 连接成功后，先拉取历史消息进行去重
-          fetchHistoryMessages(baseUrl, token);
+            const socket = new SockJS(`${baseUrl}/stomp-ws`, null, {
+                transports: ['websocket', 'xhr-polling']
+            });
+            stompClient = Stomp.over(socket);
+            stompClient.debug = null;
 
-          // 订阅个人消息
-          stompClient.subscribe('/user/queue/msg', function (message) {
-            handleIncomingMessage(message);
-          });
+            updateStatus('connecting');
 
-          // 订阅广播消息
-          stompClient.subscribe('/topic/messages', function (message) {
-            handleIncomingMessage(message);
-          });
+            stompClient.connect(
+                { Authorization: `${token}` },
+                function (frame) {
+                    updateStatus('connected');
+                    fetchHistoryMessages(baseUrl, token);
 
-          sendButton.disabled = false;
-          sendButton.classList.replace('bg-gray-300', 'bg-blue-500');
-          sendButton.classList.replace('text-gray-600', 'text-white');
-          sendButton.classList.remove('cursor-not-allowed');
-        },
-        function (error) {
-          updateStatus('disconnected');
-          appendMessage('系统', '连接失败，5秒后自动重试...', 'system');
-          setTimeout(connect, 5000);
+                    stompClient.subscribe('/user/queue/msg', function (message) {
+                        handleIncomingMessage(message);
+                    });
+
+                    stompClient.subscribe('/topic/messages', function (message) {
+                        handleIncomingMessage(message);
+                    });
+
+                    sendButton.disabled = false;
+                    connectButton.classList.add('hidden');
+                    disconnectButton.classList.remove('hidden');
+                },
+                function (error) {
+                    updateStatus('disconnected');
+                    appendMessage('系统', '连接失败，5秒后自动重试...', 'system');
+                    setTimeout(connect, 5000);
+                }
+            );
         }
-      );
-    }
 
-    /**
-     * 拉取历史消息进行去重（每次连接时拉取最新20条）
-     */
-    function fetchHistoryMessages(baseUrl, token) {
-      // 每次连接都拉取最新的20条消息，用于断线恢复
-      const url = `${baseUrl}/api/notify/history?page_num=0&page_size=20`;
-      fetch(url, {
-        headers: {
-          'Authorization': token
-        }
-      })
-      .then(response => response.json())
-      .then(result => {
-        if (result.code === 200 && result.data && result.data.content) {
-          const messages = result.data.content;
-          // 按时间正序排列（从旧到新）
-          messages.sort((a, b) => a.created - b.created);
-          let syncedCount = 0;
-          let maxCreated = lastMessageTime;
-
-          messages.forEach(msg => {
-            // 只处理有 ID 的消息
-            if (!msg.id) return;
-
-            if (!processedIds.has(msg.id)) {
-              processedIds.add(msg.id);
-              appendMessage('服务器', JSON.stringify(msg.data), 'incoming');
-              syncedCount++;
+        function disconnect() {
+            if (stompClient) {
+                stompClient.disconnect();
+                stompClient = null;
+                updateStatus('disconnected');
+                connectButton.classList.remove('hidden');
+                disconnectButton.classList.add('hidden');
+                sendButton.disabled = true;
             }
-            // 更新时间戳
-            if (msg.created > maxCreated) {
-              maxCreated = msg.created;
-            }
-          });
-
-          lastMessageTime = maxCreated;
-
-          if (syncedCount > 0) {
-            appendMessage('系统', `已同步 ${syncedCount} 条历史消息`, 'system');
-          } else {
-            appendMessage('系统', '消息同步完成，无新消息', 'system');
-          }
-        } else {
-          appendMessage('系统', '连接成功，等待消息...', 'system');
         }
-      })
-      .catch(err => {
-        console.error('拉取历史消息失败:', err);
-        appendMessage('系统', '消息同步失败，将继续等待新消息', 'system');
-      });
-    }
 
-    /**
-     * 处理收到的消息
-     */
-    function handleIncomingMessage(message) {
-      const data = JSON.parse(message.body);
+        function fetchHistoryMessages(baseUrl, token) {
+            const url = `${baseUrl}/api/notify/history?page_num=0&page_size=20`;
+            fetch(url, {
+                headers: { 'Authorization': token }
+            })
+            .then(response => response.json())
+            .then(result => {
+                // 支持两种格式：1. Spring Data Page: result.data.content  2. 直接 List: result.data
+                const messages = (result.data.content || result.data || []).filter(m => m && m.id);
+                messages.sort((a, b) => a.created - b.created);
+                let syncedCount = 0;
+                let maxCreated = lastMessageTime;
 
-      // msgid 为空时不处理（不显示、不发 ACK）
-      if (!data.id) {
-        console.log('消息无 ID，跳过:', data);
-        return;
-      }
+                messages.forEach(msg => {
+                    if (!msg.id) return;
+                    if (!processedIds.has(msg.id)) {
+                        processedIds.add(msg.id);
+                        appendMessage('服务器', typeof msg.data === 'string' ? msg.data : JSON.stringify(msg.data), 'incoming');
+                        syncedCount++;
+                    }
+                    if (msg.created > maxCreated) maxCreated = msg.created;
+                });
 
-      // 去重检查
-      if (processedIds.has(data.id)) {
-        console.log('消息已处理，跳过:', data.id);
-        // 仍需发送 ACK（可能之前 ACK 失败）
-        sendAck(data.id);
-        return;
-      }
+                lastMessageTime = maxCreated;
+                if (syncedCount > 0) {
+                    appendMessage('系统', `已同步 ${syncedCount} 条历史消息`, 'system');
+                } else {
+                    appendMessage('系统', '消息同步完成，无新消息', 'system');
+                }
+            })
+            .catch(err => {
+                console.error('拉取历史消息失败:', err);
+                appendMessage('系统', '消息同步失败，将继续等待新消息', 'system');
+            });
+        }
 
-      // 添加到已处理集合
-      processedIds.add(data.id);
+        function handleIncomingMessage(message) {
+            const data = JSON.parse(message.body);
+            if (!data.id) {
+                console.log('消息无 ID，跳过:', data);
+                return;
+            }
 
-      // 更新时间戳
-      if (data.created && data.created > lastMessageTime) {
-        lastMessageTime = data.created;
-      }
+            if (processedIds.has(data.id)) {
+                sendAck(data.id);
+                return;
+            }
 
-      // 显示消息
-      appendMessage('服务器', JSON.stringify(data.data), 'incoming');
+            processedIds.add(data.id);
+            if (data.created && data.created > lastMessageTime) lastMessageTime = data.created;
 
-      // 发送 ACK 确认
-      sendAck(data.id);
-    }
+            appendMessage('服务器', typeof data.data === 'string' ? data.data : JSON.stringify(data.data), 'incoming');
+            sendAck(data.id);
+        }
 
-    function sendMessage() {
-      const message = messageInput.value.trim();
-      if (message && stompClient?.connected) {
-        stompClient.send('/app/sendMessage', {}, message);
-        appendMessage('我', message, 'outgoing');
-        messageInput.value = '';
-      }
-    }
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message && stompClient?.connected) {
+                stompClient.send('/app/sendMessage', {}, message);
+                appendMessage('我', message, 'outgoing');
+                messageInput.value = '';
+            }
+        }
 
-    function sendAck(id) {
-      if (stompClient?.connected) {
-        stompClient.send('/app/ack', {}, id);
-      }
-    }
+        function sendAck(id) {
+            if (stompClient?.connected) {
+                stompClient.send('/app/ack', {}, id);
+            }
+        }
 
-    function updateStatus(status) {
-      if (status === 'connected') {
-        connectionStatus.innerHTML = '<i class="fa fa-circle text-green-500 mr-1"></i> 已连接';
-      } else {
-        connectionStatus.innerHTML = '<i class="fa fa-circle text-red-500 mr-1"></i> 未连接';
-      }
-    }
+        function triggerBroadcast() {
+            const baseUrl = serverInput.value.trim().replace(/\/+$/, '');
+            fetch(`${baseUrl}/vh-stomp-wsend/push_all_obj`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: 'Hello'
+            }).then(res => {
+                if (res.ok) appendMessage('系统', '广播消息已发送', 'system');
+            }).catch(err => {
+                appendMessage('系统', '发送失败: ' + err.message, 'system');
+            });
+        }
 
-    function appendMessage(sender, text, type) {
-      const div = document.createElement('div');
-      div.className = 'mb-2';
-      if (type === 'incoming') {
-        div.innerHTML = `<div class="bg-green-100 p-2 rounded"><strong>${sender}:</strong> ${text}</div>`;
-      } else if (type === 'outgoing') {
-        div.innerHTML = `<div class="bg-blue-100 p-2 rounded text-right"><strong>${sender}:</strong> ${text}</div>`;
-      } else {
-        div.innerHTML = `<div class="text-center text-gray-500">${text}</div>`;
-      }
-      messageContainer.appendChild(div);
-      messageContainer.scrollTop = messageContainer.scrollHeight;
-    }
+        function triggerPush() {
+            const baseUrl = serverInput.value.trim().replace(/\/+$/, '');
+            const token = tokenInput.value.trim();
+            fetch(`${baseUrl}/vh-stomp-wsend/push_all_obj/${token}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: 'Hello, Message to ' + token
+            }).then(res => {
+                if (res.ok) appendMessage('系统', `消息已推送给 ${token}`, 'system');
+            }).catch(err => {
+                appendMessage('系统', '发送失败: ' + err.message, 'system');
+            });
+        }
 
-    window.addEventListener('load', () => {
-      sendButton.disabled = true;
-    });
-</script>
+        function updateStatus(status) {
+            const statusDot = connectionStatus.querySelector('.status-dot');
+            const statusText = connectionStatus.querySelector('span:last-child');
+
+            if (status === 'connected') {
+                statusDot.className = 'status-dot status-connected';
+                statusText.textContent = '已连接';
+            } else if (status === 'connecting') {
+                statusDot.className = 'status-dot status-disconnected';
+                statusText.textContent = '连接中...';
+            } else {
+                statusDot.className = 'status-dot status-disconnected';
+                statusText.textContent = '未连接';
+            }
+        }
+
+        function clearMessages() {
+            messageContainer.innerHTML = `
+                <div class="text-center text-gray-500 py-12">
+                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                    <p>记录已清空</p>
+                </div>
+            `;
+        }
+
+        function appendMessage(sender, text, type) {
+            if (messageContainer.querySelector('.text-center.text-gray-500')) {
+                messageContainer.innerHTML = '';
+            }
+
+            const div = document.createElement('div');
+            const time = new Date().toLocaleTimeString();
+
+            let html = '';
+            if (type === 'incoming') {
+                html = `
+                    <div class="msg-incoming rounded-xl p-4 backdrop-blur-sm">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                            <span class="text-cyan-400 text-xs font-medium">${sender}</span>
+                            <span class="text-gray-500 text-xs">${time}</span>
+                        </div>
+                        <p class="text-gray-200 text-sm font-mono">${escapeHtml(text)}</p>
+                    </div>
+                `;
+            } else if (type === 'outgoing') {
+                html = `
+                    <div class="msg-outgoing rounded-xl p-4 backdrop-blur-sm text-right">
+                        <div class="flex items-center justify-end gap-2 mb-2">
+                            <span class="text-gray-500 text-xs">${time}</span>
+                            <span class="text-green-400 text-xs font-medium">${sender}</span>
+                            <span class="w-2 h-2 rounded-full bg-green-400"></span>
+                        </div>
+                        <p class="text-gray-200 text-sm font-mono">${escapeHtml(text)}</p>
+                    </div>
+                `;
+            } else {
+                html = `
+                    <div class="msg-system rounded-xl p-3 text-center">
+                        <span class="text-gray-400 text-xs">${escapeHtml(text)}</span>
+                    </div>
+                `;
+            }
+
+            div.innerHTML = html;
+            messageContainer.appendChild(div);
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        window.addEventListener('load', () => {
+            sendButton.disabled = true;
+        });
+    </script>
 </body>
 </html>

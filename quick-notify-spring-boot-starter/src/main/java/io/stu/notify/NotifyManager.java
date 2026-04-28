@@ -6,6 +6,7 @@ import io.stu.notify.repository.NotifyMessageLog;
 import io.stu.notify.repository.NotifyRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -30,6 +31,7 @@ public class NotifyManager {
      * @param msg 消息
      * @return 保存的消息
      */
+    @Transactional
     public NotifyMessageLog saveAndPublish(NotifyMessageLog msg) {
         MessageTypeRegistry.checkDataType(msg.getType(), msg.getData());
 
