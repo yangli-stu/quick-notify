@@ -20,10 +20,12 @@
     --border: rgba(148, 163, 184, 0.1);
     --border-hover: rgba(148, 163, 184, 0.2);
     --success: #10b981;
+    --error: #ef4444;
     --gradient-start: #6366f1;
     --gradient-end: #22d3ee;
     --glass-bg: rgba(17, 24, 39, 0.5);
     --glass-border: rgba(148, 163, 184, 0.1);
+    --code-bg: rgba(3, 5, 8, 0.8);
 }
 
 /* ========== Reset & Base ========== */
@@ -338,6 +340,7 @@ a {
     color: var(--text-primary);
     border: 1px solid var(--border-hover);
     backdrop-filter: blur(10px);
+    position: relative;
 }
 
 .btn-secondary:hover {
@@ -945,6 +948,8 @@ td:first-child {
     max-width: 1000px;
     margin: 0 auto;
     padding: 2rem;
+    position: relative;
+    z-index: 1;
 }
 
 .demo-panel {

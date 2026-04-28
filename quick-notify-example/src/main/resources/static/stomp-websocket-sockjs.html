@@ -21,6 +21,8 @@
                 radial-gradient(ellipse at 20% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
                 radial-gradient(ellipse at 80% 100%, rgba(34, 211, 238, 0.1) 0%, transparent 50%);
             min-height: 100vh;
+            position: relative;
+            z-index: 1;
         }
 
         .font-mono {
@@ -62,6 +64,7 @@
             mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
             -webkit-mask-composite: xor;
             mask-composite: exclude;
+            pointer-events: none;
         }
 
         /* Input styling */
@@ -206,6 +209,7 @@
             background: rgba(34, 211, 238, 0.6);
             border-radius: 50%;
             animation: float 6s infinite ease-in-out;
+            pointer-events: none;
         }
 
         @keyframes float {
@@ -334,7 +338,7 @@
         <div class="cyber-border rounded-2xl p-6 mb-6">
             <div class="flex gap-4">
                 <input id="messageInput" type="text" placeholder="输入消息内容，按 Enter 发送..." class="cyber-input flex-1 px-5 py-4 rounded-xl text-sm">
-                <button id="sendButton" disabled class="cyber-btn btn-success px-8 py-4 rounded-xl font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                <button id="sendButton" type="button" disabled class="cyber-btn btn-success px-8 py-4 rounded-xl font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
                     <span class="flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
@@ -488,6 +492,21 @@
             }
         }
 
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message && stompClient?.connected) {
+                stompClient.send('/app/sendMessage', {}, message);
+                appendMessage('我', message, 'outgoing');
+                messageInput.value = '';
+            }
+        }
+
+        function sendAck(id) {
+            if (stompClient?.connected) {
+                stompClient.send('/app/ack', {}, id);
+            }
+        }
+
         function fetchHistoryMessages(baseUrl, token) {
             const url = `${baseUrl}/api/notify/history?page_num=0&page_size=20`;
             fetch(url, {
@@ -541,15 +560,6 @@
 
             appendMessage('服务器', typeof data.data === 'string' ? data.data : JSON.stringify(data.data), 'incoming');
             sendAck(data.id);
-        }
-
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (message && stompClient?.connected) {
-                stompClient.send('/app/sendMessage', {}, message);
-                appendMessage('我', message, 'outgoing');
-                messageInput.value = '';
-            }
         }
 
         function sendAck(id) {
@@ -662,9 +672,6 @@
             return div.innerHTML;
         }
 
-        window.addEventListener('load', () => {
-            sendButton.disabled = true;
-        });
-    </script>
+            </script>
 </body>
 </html>

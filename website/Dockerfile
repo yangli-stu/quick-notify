@@ -1,12 +1,15 @@
-# Quick-Notify Website Dockerfile
-FROM nginx:1.25-alpine
+# Quick-Notify 单体应用 Dockerfile
+# 后端 + 静态资源 + Redis 内置
 
-# 复制网站文件到 nginx html 目录
-COPY . /usr/share/nginx/html
+FROM eclipse-temurin:21-jre-alpine
 
-# 复制自定义 Nginx 配置
-COPY nginx.conf /etc/nginx/nginx.conf
+RUN apk add --no-cache redis
 
-EXPOSE 8080
+COPY quick-notify-example/target/*.jar /app/app.jar
+COPY website/ /app/BOOT-INF/classes/static/
+COPY website/start.sh /start.sh
+RUN chmod +x /start.sh
 
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 2025
+
+ENTRYPOINT ["/start.sh"]

@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <script src="/js/sockjs.min.js"></script>
-    <script src="/js/stomp.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 </head>
 <body>
     <!-- Navigation -->
@@ -64,27 +64,8 @@
                 <div class="demo-controls">
                     <input type="text" id="userId" placeholder="输入用户 ID (如: test1)" value="test1">
                     <input type="text" id="serverUrl" placeholder="服务器地址" style="max-width: 300px;">
-                    <button id="connectBtn" class="btn btn-primary" onclick="connect()">连接</button>
-                    <button id="disconnectBtn" class="btn btn-secondary" onclick="disconnect()" disabled>断开</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Send Message Panel -->
-        <div class="demo-panel">
-            <div class="demo-header">
-                <span class="demo-title">2. 发送消息</span>
-            </div>
-            <div class="demo-body">
-                <div class="demo-controls">
-                    <input type="text" id="receiverId" placeholder="接收者 ID" value="test1">
-                    <input type="text" id="messageContent" placeholder="消息内容">
-                    <button id="sendBtn" class="btn btn-primary" onclick="sendMessage()" disabled>发送</button>
-                </div>
-                <div style="margin-top: 1rem;">
-                    <button class="btn btn-secondary" onclick="sendBroadcast()" disabled id="broadcastBtn">
-                        广播消息
-                    </button>
+                    <button id="connectBtn" class="btn btn-primary" onclick="connect()" type="button">连接</button>
+                    <button id="disconnectBtn" class="btn btn-secondary" onclick="disconnect()" type="button" disabled>断开</button>
                 </div>
             </div>
         </div>
@@ -92,7 +73,7 @@
         <!-- Messages Panel -->
         <div class="demo-panel">
             <div class="demo-header">
-                <span class="demo-title">3. 消息记录</span>
+                <span class="demo-title">2. 消息记录</span>
                 <button class="btn btn-secondary" onclick="clearMessages()" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">清空</button>
             </div>
             <div class="demo-body">
@@ -100,6 +81,25 @@
                     <div style="color: var(--text-muted); text-align: center; padding: 2rem;">
                         连接后消息将显示在这里
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Send Message Panel -->
+        <div class="demo-panel">
+            <div class="demo-header">
+                <span class="demo-title">3. 发送消息</span>
+            </div>
+            <div class="demo-body">
+                <div class="demo-controls">
+                    <input type="text" id="receiverId" placeholder="接收者 ID" value="test1">
+                    <input type="text" id="messageContent" placeholder="消息内容">
+                    <button id="sendBtn" class="btn btn-primary" onclick="sendMessage()" type="button" disabled>发送</button>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <button class="btn btn-secondary" onclick="sendBroadcast()" type="button" disabled id="broadcastBtn">
+                        广播消息
+                    </button>
                 </div>
             </div>
         </div>
@@ -113,8 +113,8 @@
                 <div class="demo-controls">
                     <input type="text" id="apiUserId" placeholder="用户 ID" value="test1">
                     <input type="text" id="apiMessage" placeholder="消息内容" value="Hello from API!">
-                    <button class="btn btn-secondary" onclick="testPushApi()">POST /push_all_obj/{userId}</button>
-                    <button class="btn btn-secondary" onclick="testBroadcastApi()">POST /push_all_obj (广播)</button>
+                    <button class="btn btn-secondary" onclick="testPushApi()" type="button">POST /push_all_obj/{userId}</button>
+                    <button class="btn btn-secondary" onclick="testBroadcastApi()" type="button">POST /push_all_obj (广播)</button>
                 </div>
                 <div id="apiResult" style="margin-top: 1rem; padding: 1rem; background: var(--code-bg); border-radius: 6px; font-family: 'Fira Code', monospace; font-size: 0.875rem; display: none;"></div>
             </div>
@@ -132,7 +132,7 @@
     </div>
 
     <script>
-        // 后端地址配置（部署时由 deploy.sh 自动修改）
+        // 后端地址配置（deploy.sh 部署时会自动修改此值）
         const BACKEND_URL = 'http://localhost:2025';
 
         let stompClient = null;
@@ -174,66 +174,68 @@
 
             log(`Connecting to ${serverUrl} as ${userId}...`);
 
-            const socket = new SockJS(serverUrl);
-            stompClient = Stomp.over(socket);
+            try {
+                const socket = new SockJS(serverUrl);
+                stompClient = Stomp.over(socket);
 
-            stompClient.debug = function(str) {
-                // 禁用 STOMP 调试日志
-            };
+                stompClient.debug = null;
 
-            stompClient.connect(
-                { Authorization: `test${userId}` },
-                function(frame) {
-                    log(`Connected as ${userId}`, 'success');
-                    document.getElementById('connectionStatus').textContent = '已连接';
-                    document.getElementById('connectionStatus').style.color = 'var(--success)';
-                    document.getElementById('connectBtn').disabled = true;
-                    document.getElementById('disconnectBtn').disabled = false;
-                    document.getElementById('sendBtn').disabled = false;
-                    document.getElementById('broadcastBtn').disabled = false;
+                stompClient.connect(
+                    { Authorization: userId },
+                    function(frame) {
+                        log(`Connected as ${userId}`, 'success');
+                        document.getElementById('connectionStatus').textContent = '已连接';
+                        document.getElementById('connectionStatus').style.color = 'var(--success)';
+                        document.getElementById('connectBtn').disabled = true;
+                        document.getElementById('disconnectBtn').disabled = false;
+                        document.getElementById('sendBtn').disabled = false;
+                        document.getElementById('broadcastBtn').disabled = false;
 
-                    // 订阅个人消息
-                    stompClient.subscribe('/user/queue/msg', function(message) {
-                        const data = JSON.parse(message.body);
-                        addMessage(`<strong>收到消息</strong>: ${JSON.stringify(data, null, 2)}`, 'received');
+                        // 订阅个人消息
+                        stompClient.subscribe('/user/queue/msg', function(message) {
+                            const data = JSON.parse(message.body);
+                            addMessage(`<strong>收到消息</strong>: ${JSON.stringify(data, null, 2)}`, 'received');
 
-                        // 发送 ACK
-                        if (data.id) {
-                            stompClient.send('/app/ack', {}, data.id);
-                            log(`ACK sent for ${data.id}`, 'success');
-                        }
-                    });
+                            // 发送 ACK
+                            if (data.id) {
+                                stompClient.send('/app/ack', {}, data.id);
+                                log(`ACK sent for ${data.id}`, 'success');
+                            }
+                        });
 
-                    // 订阅广播消息
-                    stompClient.subscribe('/topic/messages', function(message) {
-                        const data = JSON.parse(message.body);
-                        addMessage(`<strong>广播消息</strong>: ${JSON.stringify(data, null, 2)}`, 'received');
-                    });
+                        // 订阅广播消息
+                        stompClient.subscribe('/topic/messages', function(message) {
+                            const data = JSON.parse(message.body);
+                            addMessage(`<strong>广播消息</strong>: ${JSON.stringify(data, null, 2)}`, 'received');
+                        });
 
-                    // 订阅 ACK 确认
-                    stompClient.subscribe('/topic/ack', function(message) {
-                        const data = message.body;
-                        addMessage(`<strong>ACK 确认</strong>: ${data}`, 'sent');
-                    });
+                        // 订阅 ACK 确认
+                        stompClient.subscribe('/topic/ack', function(message) {
+                            const data = message.body;
+                            addMessage(`<strong>ACK 确认</strong>: ${data}`, 'sent');
+                        });
 
-                    addMessage(`已订阅 /user/queue/msg`, 'sent');
-                },
-                function(error) {
-                    log(`Connection error: ${error}`, 'error');
-                    document.getElementById('connectionStatus').textContent = '连接失败';
-                    document.getElementById('connectionStatus').style.color = 'var(--error)';
-                }
-            );
+                        addMessage(`已订阅 /user/queue/msg`, 'sent');
+                    },
+                    function(error) {
+                        log(`Connection error: ${error}`, 'error');
+                        document.getElementById('connectionStatus').textContent = '连接失败';
+                        document.getElementById('connectionStatus').style.color = 'var(--error)';
+                    }
+                );
 
-            socket.onclose = function() {
-                log('Connection closed', 'error');
-                document.getElementById('connectionStatus').textContent = '已断开';
-                document.getElementById('connectionStatus').style.color = 'var(--text-muted)';
-                document.getElementById('connectBtn').disabled = false;
-                document.getElementById('disconnectBtn').disabled = true;
-                document.getElementById('sendBtn').disabled = true;
-                document.getElementById('broadcastBtn').disabled = true;
-            };
+                socket.onclose = function() {
+                    log('Connection closed', 'error');
+                    document.getElementById('connectionStatus').textContent = '已断开';
+                    document.getElementById('connectionStatus').style.color = 'var(--text-muted)';
+                    document.getElementById('connectBtn').disabled = false;
+                    document.getElementById('disconnectBtn').disabled = true;
+                    document.getElementById('sendBtn').disabled = true;
+                    document.getElementById('broadcastBtn').disabled = true;
+                };
+            } catch (err) {
+                log(`Error: ${err.message}`, 'error');
+            }
         }
 
         function disconnect() {

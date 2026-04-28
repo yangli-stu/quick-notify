@@ -9,7 +9,7 @@ set -e
 # 配置
 IMAGE_NAME="quick-notify-website"
 CONTAINER_NAME="qn-website"
-PORT=8501
+PORT=2025
 WEBSITE_DIR="$(cd "$(dirname "$0")" && pwd)"
 DOCKERFILE="$WEBSITE_DIR/Dockerfile"
 
@@ -49,30 +49,29 @@ deploy() {
         BACKEND_URL="http://localhost:2025"
     fi
 
-    # 3. 构建镜像
-    log_info "构建镜像 (后端地址: $BACKEND_URL)..."
-    cd "$WEBSITE_DIR"
+    # 3. 本地构建 JAR
+    log_info "构建后端..."
+    cd "$WEBSITE_DIR/.."
+    mvn clean package -DskipTests -pl quick-notify-example -am
 
-    # 修改 demo.html 中的后端地址
-    sed -i.bak "s|const BACKEND_URL = '[^']*'|const BACKEND_URL = '$BACKEND_URL'|g" demo.html
+    # 4. 构建镜像
+    log_info "构建镜像 (环境: $env)..."
+    cd "$WEBSITE_DIR"
 
     docker build \
         --tag "$IMAGE_NAME:latest" \
         -f "$DOCKERFILE" \
-        "$WEBSITE_DIR"
+        "$WEBSITE_DIR/.."
 
-    # 恢复 demo.html
-    mv demo.html.bak demo.html
-
-    # 4. 启动容器
+    # 5. 启动容器
     log_info "启动容器..."
     docker run -d \
         --name "$CONTAINER_NAME" \
-        -p "$PORT:8080" \
+        -p "$PORT:2025" \
         --restart unless-stopped \
         "$IMAGE_NAME:latest"
 
-    sleep 2
+    sleep 10
 
     if curl -sf http://localhost:$PORT/ > /dev/null 2>&1; then
         log_success "部署完成: http://localhost:$PORT"
@@ -91,7 +90,7 @@ help() {
     echo "用法: $0 [local|prod]"
     echo ""
     echo "参数:"
-    echo "  local  - 本地部署，后端地址: http://localhost:2025"
+    echo "  local  - 本地部署，单体应用，端口: 2025"
     echo "  prod   - 生产部署，后端地址: https://api.quicknotify.example.com"
     echo ""
     echo "示例:"

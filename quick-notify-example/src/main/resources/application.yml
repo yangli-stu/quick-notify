@@ -1,11 +1,18 @@
 server:
-  port: 2025
+  port: ${PORT:2025}
 
 spring:
   main:
     allow-circular-references: true
   application:
     name: quick-notify-example
+  web:
+    resources:
+      static-locations: classpath:/,classpath:/static/
+      static-path-pattern: /**
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
   datasource:
     driver-class-name: org.h2.Driver
     url: jdbc:h2:mem:quicknotify;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
@@ -27,6 +34,10 @@ spring:
 redisson:
   single-server-config:
     address: redis://127.0.0.1:6379
+
+# STOMP 配置
+stomp:
+  enable-local-ack: true
 
 # WebSocket & STOMP 日志
 logging:

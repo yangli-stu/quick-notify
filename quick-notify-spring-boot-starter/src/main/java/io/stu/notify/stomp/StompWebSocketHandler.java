@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.redisson.api.RMap;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.user.SimpSession;
@@ -38,8 +39,9 @@ public class StompWebSocketHandler {
     private static final long ACK_MESSAGE_TTL_MS = 1 * ONE_MINUTE;
     private static final long ACK_MAX_RETRY_COUNT = ACK_MESSAGE_TTL_MS / ACK_RETRY_INTERVAL_MS;
 
-    // 本地缓存（单节点模式）
-    private static final boolean enableLocalAck = false;
+    // 本地缓存（单节点模式），可通过配置 stomp.enable-local-ack 覆盖
+    @Value("${stomp.enable-local-ack:false}")
+    private boolean enableLocalAck = false;
     private final ConcurrentHashMap<String, NotifyMessage> localCache = new ConcurrentHashMap<>();
 
     @Autowired(required = false)
