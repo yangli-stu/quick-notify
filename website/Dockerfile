@@ -6,8 +6,6 @@ WORKDIR /build
 COPY pom.xml .
 COPY quick-notify-spring-boot-starter/pom.xml quick-notify-spring-boot-starter/
 COPY quick-notify-example/pom.xml quick-notify-example/
-RUN mvn dependency:go-offline -pl quick-notify-spring-boot-starter,quick-notify-example
-
 COPY quick-notify-spring-boot-starter/src quick-notify-spring-boot-starter/src
 COPY quick-notify-example/src quick-notify-example/src
 RUN mvn package -DskipTests -pl quick-notify-example -am
@@ -18,8 +16,8 @@ FROM eclipse-temurin:21-jre-alpine
 RUN apk add --no-cache redis
 
 COPY --from=builder /build/quick-notify-example/target/*.jar /app/app.jar
-COPY *.html *.css js blog-articles /app/BOOT-INF/classes/static/
-COPY start.sh /start.sh
+COPY website/*.html website/*.css website/js website/blog-articles /app/BOOT-INF/classes/static/
+COPY website/start.sh /start.sh
 RUN chmod +x /start.sh
 
 EXPOSE 2025
