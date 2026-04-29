@@ -51,17 +51,12 @@ deploy() {
 
     # 3. 本地构建 JAR
     log_info "构建后端..."
-    cd "$WEBSITE_DIR/.."
+    cd "$WEBSITE_DIR"
     mvn clean package -DskipTests -pl quick-notify-example -am
 
     # 4. 构建镜像
     log_info "构建镜像 (环境: $env)..."
-    cd "$WEBSITE_DIR"
-
-    docker build \
-        --tag "$IMAGE_NAME:latest" \
-        -f "$DOCKERFILE" \
-        "$WEBSITE_DIR/.."
+    docker build -t "$IMAGE_NAME:latest" -f "$DOCKERFILE" "$WEBSITE_DIR"
 
     # 5. 启动容器
     log_info "启动容器..."
