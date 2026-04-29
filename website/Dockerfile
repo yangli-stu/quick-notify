@@ -6,8 +6,8 @@ FROM eclipse-temurin:21-jre-alpine
 RUN apk add --no-cache redis
 
 COPY quick-notify-example/target/*.jar /app/app.jar
-COPY website/ /app/BOOT-INF/classes/static/
-COPY website/start.sh /start.sh
+COPY *.html *.css js blog-articles /app/BOOT-INF/classes/static/
+COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
 EXPOSE 2025
