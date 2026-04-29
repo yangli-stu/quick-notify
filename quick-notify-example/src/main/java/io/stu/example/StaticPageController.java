@@ -64,4 +64,15 @@ public class StaticPageController {
         }
         return "Not Found";
     }
+
+    @GetMapping("/**/*.md")
+    @ResponseBody
+    public String handleMd(HttpServletRequest request) throws IOException {
+        String path = request.getRequestURI();
+        Path filePath = Paths.get(STATIC_BASE, path.substring(1));
+        if (Files.exists(filePath)) {
+            return Files.readString(filePath);
+        }
+        return "Not Found";
+    }
 }

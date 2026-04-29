@@ -18,7 +18,7 @@ FROM eclipse-temurin:21-jre-alpine
 RUN apk add --no-cache redis
 
 COPY --from=maven-build /build/quick-notify-example/target/*.jar /app/app.jar
-COPY website/*.html website/*.css website/js website/blog-articles /app/BOOT-INF/classes/static/
+COPY website/ /app/BOOT-INF/classes/static/
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
